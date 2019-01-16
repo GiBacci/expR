@@ -603,7 +603,7 @@ setMethod("getExperimentFromOutput", "SingleEndSamples", function(obj, new.outpu
 })
 
 setMethod("getExperimentFromOutput", "PairedSamples", function(obj, new.output = NULL){
-  if(is.null(new.output) | is.null(dim(new.output))){
+  if(is.null(new.output)){
     new.o.fwr <- as.character(rep(NA, obj@n))
     new.o.rev <- as.character(rep(NA, obj@n))
   }else if(is.function(new.output)){
