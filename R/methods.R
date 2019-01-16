@@ -573,7 +573,8 @@ setMethod("sysByFct", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
 #' will be generate depending on the [new.output] param
 #'
 #' @param obj a TargetedExperiment. The experiment to convert
-#' @param new.output either a characetr vector, NULL, or a function.
+#' @param new.output either a character vector (or a matrix with two
+#'  columns for paired experiments), NULL, or a function.
 #'  If a character vector is provided, output file will be named
 #'  accordingly otherwise the specified function will be used
 #'  to convert input files into output ones. If NULL, the
@@ -602,21 +603,21 @@ setMethod("getExperimentFromOutput", "SingleEndSamples", function(obj, new.outpu
 })
 
 setMethod("getExperimentFromOutput", "PairedSamples", function(obj, new.output = NULL){
-  if(is.null(new.output)){
+  if(is.null(new.output) | is.null(dim(new.output))){
     new.o.fwr <- as.character(rep(NA, obj@n))
     new.o.rev <- as.character(rep(NA, obj@n))
   }else if(is.function(new.output)){
     new.o.fwr <- new.output(obj@forward)
     new.o.rev <- new.output(obj@reverse)
-  }
-
-  m <- as.matrix(new.output)
-  if(is.character(m)){
-    if(nrow(m) != obj@n){
-      stop("Length of output files differs from sample length")
+  }else if(ncol(new.output) == 2){
+    m <- as.matrix(new.output)
+    if(is.character(m)){
+      if(nrow(m) != obj@n){
+        stop("Length of output files differs from sample length")
+      }
+      new.o.fwr <- m[,1]
+      new.o.rev <- m[,2]
     }
-    new.o.fwr <- m[,1]
-    new.o.rev <- m[,2]
   }
 
   obj@forward <- obj@forward.out
