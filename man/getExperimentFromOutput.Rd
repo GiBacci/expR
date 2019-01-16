@@ -9,7 +9,8 @@ getExperimentFromOutput(obj, new.output = NULL)
 \arguments{
 \item{obj}{a TargetedExperiment. The experiment to convert}
 
-\item{new.output}{either a characetr vector, NULL, or a function.
+\item{new.output}{either a character vector (or a matrix with two
+columns for paired experiments), NULL, or a function.
 If a character vector is provided, output file will be named
 accordingly otherwise the specified function will be used
 to convert input files into output ones. If NULL, the
