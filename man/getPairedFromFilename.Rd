@@ -5,8 +5,8 @@
 \title{Constructor for paired-end experiments}
 \usage{
 getPairedFromFilename(maindir = ".", forward = "_R1_",
-  reverse = "_R2_", samples = NULL, recursive = F, run = c("none",
-  "folder", "header"), output = NULL)
+  reverse = "_R2_", samples = NULL, run = NULL, output = NULL,
+  recursive = F)
 }
 \arguments{
 \item{maindir}{character. The directory in which to search for
@@ -25,14 +25,14 @@ provided. If it's a function file names will be processed
 using the function provided and samples will have the resulting
 names.}
 
-\item{recursive}{logical. Should the listing recurse into directories?}
-
 \item{run}{one of "none", "folder", or "header". If "none" no
 run will be specified, if "folder" the run id will be inferred from
 the folder structure, and if "header" the run id will be parsed from
 the header of the sequences.}
 
 \item{output}{similar to samples parameter}
+
+\item{recursive}{logical. Should the listing recurse into directories?}
 }
 \value{
 a paired-end experiment

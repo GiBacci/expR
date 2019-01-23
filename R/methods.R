@@ -86,14 +86,62 @@
 #' }
 #' @seealso [formatSample()] and [formatOutptut()] for sample and output
 #'  formatting.
+
+# getSingleEndFromFilename <- function(maindir = ".",
+#                                      pattern = ".fastq",
+#                                      samples = NULL,
+#                                      recursive = F,
+#                                      run = c("none", "folder", "header"),
+#                                      output = NULL){
+#
+#   run <- match.arg(run)
+#
+#   files <- sort(list.files(path = maindir,
+#                            pattern = pattern,
+#                            recursive = recursive,
+#                            full.names = T))
+#
+#   if(length(files) == 0){
+#     stop("No file/s were found")
+#   }
+#
+#   if(run == "folder"){
+#     run <- basename(dirname(files))
+#   }else if(run == "header"){
+#     run <- .getRunFromHeader(files)
+#   }else{
+#     run <- rep("none", length(files))
+#   }
+#
+#   if(is.null(output)){
+#     o <- as.character(rep(NA, length(files)))
+#   }else if(is.character(output)){
+#     if(length(output) != length(files)){
+#       stop("Length of output files differs from sample length")
+#     }
+#     o <- output
+#   }else if(is.function(output)){
+#     o <- output(files)
+#   }
+#
+#   if(is.null(samples)){
+#     s <- basename(files)
+#   }else if(is.function(samples)){
+#     s <- samples(files)
+#   }else if(is.character(samples)){
+#     s <- samples
+#   }
+#
+#   experiment <- .getTargetedExperiment(samples = s, step = "raw",
+#                                        run = run)
+#   .SingleEndSamples(experiment, files = files, output = o)
+# }
 getSingleEndFromFilename <- function(maindir = ".",
                                      pattern = ".fastq",
                                      samples = NULL,
-                                     recursive = F,
-                                     run = c("none", "folder", "header"),
-                                     output = NULL){
-
-  run <- match.arg(run)
+                                     run = NULL,
+                                     output = NULL,
+                                     recursive = F){
 
   files <- sort(list.files(path = maindir,
                            pattern = pattern,
@@ -104,12 +152,17 @@ getSingleEndFromFilename <- function(maindir = ".",
     stop("No file/s were found")
   }
 
-  if(run == "folder"){
-    run <- basename(dirname(files))
-  }else if(run == "header"){
-    run <- .getRunFromHeader(files)
+  if(is.null(run)){
+    r <- as.character(rep(NA, length(files)))
+  }else if(is.character(run)){
+    if(length(run) != length(files)){
+      stop("Run and files differ in length")
+    }
+    r <- run
+  }else if(is.function(run)){
+    r <- run(files)
   }else{
-    run <- rep("none", length(files))
+    stop("Cannot recognize run option")
   }
 
   if(is.null(output)){
@@ -131,8 +184,7 @@ getSingleEndFromFilename <- function(maindir = ".",
     s <- samples
   }
 
-  experiment <- .getTargetedExperiment(samples = s, step = "raw",
-                                       run = run)
+  experiment <- .getTargetedExperiment(samples = s, step = "raw", run = r)
   .SingleEndSamples(experiment, files = files, output = o)
 }
 
@@ -169,11 +221,9 @@ getPairedFromFilename <- function(maindir = ".",
                                   forward = "_R1_",
                                   reverse = "_R2_",
                                   samples = NULL,
-                                  recursive = F,
-                                  run = c("none", "folder", "header"),
-                                  output = NULL){
-
-  run <- match.arg(run)
+                                  run = NULL,
+                                  output = NULL,
+                                  recursive = F){
 
   fwr <- getSingleEndFromFilename(maindir = maindir,
                                   pattern = forward,
@@ -470,6 +520,32 @@ setMethod("byFct", "TargetedExperimet", function(obj, fun, by, ..., thread = 1){
 })
 
 
+#' Run a function on the whole experiment
+#'
+#' This function will execute a function call
+#' on the whole experiment.
+#' If threads > 1 and the doParallel package
+#' has been installed, multiple processes will
+#' be executed at the same time.
+#'
+#' @param obj the experiment
+#' @param fun the function
+#' @param ... additional parameters to fun
+#' @param thread the number of parallel process to execute
+#'
+#' @return an object
+#' @export
+#'
+#' @examples
+setGeneric("byAll", function(obj, fun, ..., thread = 1) standardGeneric("byAll"))
+setMethod("byAll", "TargetedExperimet", function(obj, fun, ..., thread = 1){
+  f <- substitute(fun(...))
+  by <- rep("all", N(obj))
+  res <- .evalFunBy(obj, by, f, thread)
+  res[[1]]
+})
+
+
 #' Launches a system call for each sample
 #'
 #' This function will execute a system call
@@ -558,13 +634,43 @@ setMethod("sysByRun", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
 #' @examples
 setGeneric("sysByFct", function(obj, cmd, by, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysByFct"))
-setMethod("sysByFct", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
+setMethod("sysByFct", "TargetedExperimet", function(obj, cmd, by, ..., stdout = "",
                                                   stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
   .evalFunBy(obj, by, f, thread)
 })
 
+#' Run a system call on the whole experiment
+#'
+#' This function will execute a system call
+#' for the whole experiment.
+#' If threads > 1 and the doParallel package
+#' has been installed, multiple processes will
+#' be executed at the same time.
+#'
+#' @param obj the experiment
+#' @param cmd the system command
+#' @param ... argument/s to the command
+#' @param stdout passed to stdout of [system2]
+#' @param stderr passed to stderr of [system2]
+#' @param thread the number of parallel process to execute
+#'
+#' @return an object
+#' @export
+#'
+#' @examples
+setGeneric("sysByAll", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
+  standardGeneric("sysByAll"))
+setMethod("sysByAll", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
+                                                    stderr = "", thread = 1){
+  f <- substitute(system2(command = cmd, args = c(...),
+                          stdout = stdout, stderr = stderr))
+
+  by <- rep("all", N(obj))
+  res <- .evalFunBy(obj, by, f, thread)
+  res[[1]]
+})
 
 #' Get an experiment from the output of another one.
 #'
