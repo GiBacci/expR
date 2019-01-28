@@ -9,6 +9,7 @@
 \alias{output}
 \alias{samples}
 \alias{run}
+\alias{nrun}
 \title{Set of methods to access or to set
 slots of a TargetedExperiment}
 \usage{
@@ -25,6 +26,8 @@ output(obj)
 samples(obj)
 
 run(obj)
+
+nrun(obj)
 }
 \arguments{
 \item{obj}{a TargetedExperiment object}
@@ -47,5 +50,8 @@ a data frame with forward and reverse files.
 a \link{TargetedExperiment} object.
 
 \code{run} returns the samples from
+a \link{TargetedExperiment} object.
+
+\code{run} returns the number of run from
 a \link{TargetedExperiment} object.
 }

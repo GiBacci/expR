@@ -364,6 +364,19 @@ setMethod("run", "TargetedExperimet", function(obj){
   obj@run
 })
 
+#' Get the number of run from experiment
+#'
+#' \code{run} returns the number of run from
+#' a [TargetedExperiment] object.
+#'
+#' @export
+#'
+#' @rdname accessors
+setGeneric("nrun", function(obj) standardGeneric("nrun"))
+setMethod("nrun", "TargetedExperimet", function(obj){
+  length(unique(obj@run))
+})
+
 
 #' Mothod used internally to eval
 #' function
