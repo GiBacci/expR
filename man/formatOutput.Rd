@@ -4,12 +4,15 @@
 \alias{formatOutput}
 \title{Format output function}
 \usage{
-formatOutput(prefix, outdir = NULL)
+formatOutput(prefix, outdir = NULL, suffix = "")
 }
 \arguments{
 \item{prefix}{character. The prefix to add}
 
 \item{outdir}{character. The output directory}
+
+\item{suffix}{character. The suffix that will be
+added at the end of the file name}
 }
 \value{
 a file path

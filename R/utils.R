@@ -6,18 +6,20 @@
 #'
 #' @param prefix character. The prefix to add
 #' @param outdir character. The output directory
+#' @param suffix character. The suffix that will be
+#'  added at the end of the file name
 #'
 #' @return a file path
 #' @export
 #'
 #' @examples
-formatOutput <- function(prefix, outdir = NULL){
+formatOutput <- function(prefix, outdir = NULL, suffix = ""){
   function(files){
     if(is.null(outdir)){
       outdir <- dirname(files)
     }
     filename <- basename(files)
-    output <- file.path(outdir, paste0(prefix, filename))
+    output <- file.path(outdir, paste0(prefix, filename, suffix))
     output
   }
 }
