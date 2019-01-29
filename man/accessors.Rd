@@ -7,6 +7,7 @@
 \alias{N}
 \alias{files}
 \alias{output}
+\alias{setOutput}
 \alias{samples}
 \alias{run}
 \alias{nrun}
@@ -23,6 +24,8 @@ files(obj)
 
 output(obj)
 
+setOutput(obj, value)
+
 samples(obj)
 
 run(obj)
@@ -32,7 +35,10 @@ nrun(obj)
 \arguments{
 \item{obj}{a TargetedExperiment object}
 
-\item{value}{the value to set}
+\item{value}{the value to set. For the
+\code{setOutput} function, value must be a
+character vector (or a matrix for paired samples)
+or a function}
 }
 \description{
 \code{step} returns/set the step of analysis

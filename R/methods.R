@@ -257,7 +257,10 @@ getPairedFromFilename <- function(maindir = ".",
 #' slots of a TargetedExperiment
 #'
 #' @param obj a TargetedExperiment object
-#' @param value the value to set
+#' @param value the value to set. For the
+#'  \code{setOutput} function, value must be a
+#'  character vector (or a matrix for paired samples)
+#'  or a function
 #' @name accessors
 NULL
 
@@ -336,6 +339,52 @@ setMethod("output", "PairedSamples", function(obj){
   data.frame(forward.out = obj@forward.out,
              reverse.out = obj@reverse.out,
              stringsAsFactors = F)
+})
+
+#' Set the output of a given experiment.
+#' The \code{value} parameter must be a
+#' character vector (for single end experiments)
+#' or a character matrix with two columns
+#' (for paired end samples). In alternative
+#' it can be a function that will be used for
+#' building output names.
+#'
+#' @export
+#'
+#' @rdname accessors
+setGeneric("setOutput", function(obj, value) standardGeneric("setOutput"))
+setMethod("setOutput", "SingleEndSamples", function(obj, value){
+  if(is.character(value)){
+    if(length(value) == N(obj)){
+      obj@output <- value
+    }else{
+      stop("Output length and sample number differ")
+    }
+  }else if(is.function(value)){
+    obj@output <- value(obj@files)
+  }else{
+    stop("Output must be a character vector or a function")
+  }
+  return(obj)
+})
+
+setMethod("setOutput", "PairedSamples", function(obj, value){
+  if(is.character(value)){
+    value <- as.matrix(value)
+    if((ncol(value) == 2) &
+       (nrow(value) == N(obj))){
+      obj@forward.out <- value[,1]
+      obj@reverse.out <- value[,2]
+    }else{
+      stop("Output dimensions are different than sample number")
+    }
+  }else if(is.function(value)){
+    obj@forward.out <- value(obj@forward)
+    obj@reverse.out <- value(obj@reverse)
+  }else{
+    stop("Output must be a character matrix or a function")
+  }
+  return(obj)
 })
 
 #' Get samples from experiment
