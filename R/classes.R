@@ -164,7 +164,7 @@ setMethod("show", signature = "SingleEndSamples", function(object){
   outSet <- all(!is.na(object@files))
   cat("\n")
   cat(" ", object@n, " single-end files\n", sep = "")
-  cat(" output set ", outSet, sep = "")
+  cat(" output set ", outSet, "\n", sep = "")
 })
 
 setMethod("show", signature = "PairedSamples", function(object){
@@ -172,6 +172,6 @@ setMethod("show", signature = "PairedSamples", function(object){
   outSet <- all(!is.na(object@forward.out)) | all(!is.na(object@reverse.out))
   cat("\n")
   cat(" ", object@n, " paired-end files ", "(", object@n*2, " files)\n", sep = "")
-  cat(" output set ", outSet, sep = "")
+  cat(" output set ", outSet, "\n", sep = "")
 })
 
