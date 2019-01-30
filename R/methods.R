@@ -342,7 +342,9 @@ setMethod("output", "PairedSamples", function(obj){
 })
 
 #' Set the output of a given experiment.
-#' The \code{value} parameter must be a
+#'
+#' \code{setOutput} is used ot change tho output of
+#' a given experiment. The \code{value} parameter must be a
 #' character vector (for single end experiments)
 #' or a character matrix with two columns
 #' (for paired end samples). In alternative
@@ -415,7 +417,7 @@ setMethod("run", "TargetedExperimet", function(obj){
 
 #' Get the number of run from experiment
 #'
-#' \code{run} returns the number of run from
+#' \code{nrun} returns the number of run from
 #' a [TargetedExperiment] object.
 #'
 #' @export
@@ -426,6 +428,86 @@ setMethod("nrun", "TargetedExperimet", function(obj){
   length(unique(obj@run))
 })
 
+#' Check if output exists
+#'
+#' \code{output.exists} returns \code{TRUE}
+#' for each output file that is found
+#' on the hard drive. If the experiment
+#' is a [PairedSamples] experiment,
+#' the method will return \code{TRUE} only
+#' if both forward and reverse
+#' output files exist.
+#'
+#' @param obj a [TargetExperiment] object
+#'
+#' @export
+#'
+#' @rdname accessors
+setGeneric("output.exists", function(obj) standardGeneric("output.exists"))
+setMethod("output.exists", "SingleEndSamples", function(obj){
+  file.exists(output(obj))
+})
+
+setMethod("output.exists", "PairedSamples", function(obj){
+  M <- as.matrix(output(obj))
+  apply(M, 1, function(x) all(file.exists(x)))
+})
+
+#' Check if input exists
+#'
+#' \code{input.exists} returns \code{TRUE}
+#' for each input file that is found
+#' on the hard drive. If the experiment
+#' is a [PairedSamples] experiment,
+#' the method will return \code{TRUE} only
+#' if both forward and reverse
+#' input files exist.
+#'
+#' @param obj a [TargetExperiment] object
+#'
+#' @export
+#'
+#' @rdname accessors
+setGeneric("input.exists", function(obj) standardGeneric("input.exists"))
+setMethod("input.exists", "SingleEndSamples", function(obj){
+  file.exists(files(obj))
+})
+
+setMethod("input.exists", "PairedSamples", function(obj){
+  M <- as.matrix(files(obj))
+  apply(M, 1, function(x) all(file.exists(x)))
+})
+
+#' Check if input and output files are
+#' up to date
+#'
+#' \code{up2date} returns \code{TRUE}
+#' for each input and output file up to date.
+#' Namely, the timestamp of each input file
+#' must be smaller than its output file.
+#'
+#' @param obj a [TargetExperiment] object
+#'
+#' @export
+#'
+#' @rdname accessors
+setGeneric("up2date", function(obj) standardGeneric("up2date"))
+setMethod("up2date", "SingleEndSamples", function(obj){
+  file.mtime(files(obj)) < file.mtime(output(obj))
+})
+
+setMethod("up2date", "PairedSamples", function(obj){
+  I <- as.matrix(files(obj))
+  O <- as.matrix(output(obj))
+
+  I.f <- file.mtime(I[,1])
+  I.r <- file.mtime(I[,2])
+
+  O.f <- file.mtime(O[,1])
+  O.r <- file.mtime(O[,2])
+
+  I.f < O.f & I.r < O.r
+})
 
 #' Mothod used internally to eval
 #' function
@@ -446,20 +528,25 @@ setMethod("nrun", "TargetedExperimet", function(obj){
   list <- split(data, fct)
 
   if(thread > 1 & requireNamespace("foreach", quietly = TRUE) &
-     requireNamespace("doParallel", quietly = TRUE)){
+     requireNamespace("doParallel", quietly = TRUE) &
+     requireNamespace("doMC", quietly = TRUE)){
 
     `%dopar%` <- foreach::`%dopar%`
 
-    cl <- parallel::makeCluster(thread)
-    parallel::clusterExport(cl = cl, varlist = ls(.GlobalEnv))
-    doParallel::registerDoParallel(cl, cores = thread)
-    on.exit(parallel::stopCluster(cl))
+    old <- foreach::getDoParWorkers()
+    doMC::registerDoMC(thread)
+    on.exit(doMC::registerDoMC(old))
 
     foreach::foreach(i = seq_along(list)) %dopar% {
       d <- list[[i]]
       eval(f, envir = d, enclos = .GlobalEnv)
     }
   } else {
+
+    if(thread > 1){
+      warning("Cannot execute parallel processes due to the
+              absence of one (or more) packages needed")
+    }
 
     lapply(list, function(d) {
       eval(f, envir = d, enclos = .GlobalEnv)
@@ -797,6 +884,7 @@ setMethod("getExperimentFromOutput", "PairedSamples", function(obj, new.output =
   return(obj)
 })
 
+
 ## SUBSETTING
 setMethod("[", "TargetedExperimet", function(x, i, drop="missing"){
   .samples = x@samples[i]
@@ -832,6 +920,10 @@ setMethod("[", "PairedSamples", function(x, i, drop="missing"){
                  forward.out = .forward.out, reverse.out = .reverse.out)
 })
 
+setMethod("length", "TargetedExperimet", function(x){
+  N(x)
+})
+
 #' Convert a Targeted experiment into a data frame
 #'
 #' @param x the experiment
@@ -862,3 +954,5 @@ as.data.frame.PairedSamples <- function(x, row.names=NULL, optional=FALSE, ...){
              reverse = x@reverse, forward.out = x@forward.out,
              reverse.out = x@reverse.out, stringsAsFactors = F)
 }
+
+

@@ -11,6 +11,9 @@
 \alias{samples}
 \alias{run}
 \alias{nrun}
+\alias{output.exists}
+\alias{input.exists}
+\alias{up2date}
 \title{Set of methods to access or to set
 slots of a TargetedExperiment}
 \usage{
@@ -31,6 +34,12 @@ samples(obj)
 run(obj)
 
 nrun(obj)
+
+output.exists(obj)
+
+input.exists(obj)
+
+up2date(obj)
 }
 \arguments{
 \item{obj}{a TargetedExperiment object}
@@ -39,6 +48,12 @@ nrun(obj)
 \code{setOutput} function, value must be a
 character vector (or a matrix for paired samples)
 or a function}
+
+\item{obj}{a \link{TargetExperiment} object}
+
+\item{obj}{a \link{TargetExperiment} object}
+
+\item{obj}{a \link{TargetExperiment} object}
 }
 \description{
 \code{step} returns/set the step of analysis
@@ -52,12 +67,41 @@ is a \link{SingleEndSamples} it will return a
 vector of files otherwise it will return
 a data frame with forward and reverse files.
 
+\code{setOutput} is used ot change tho output of
+a given experiment. The \code{value} parameter must be a
+character vector (for single end experiments)
+or a character matrix with two columns
+(for paired end samples). In alternative
+it can be a function that will be used for
+building output names.
+
 \code{samples} returns the samples from
 a \link{TargetedExperiment} object.
 
 \code{run} returns the samples from
 a \link{TargetedExperiment} object.
 
-\code{run} returns the number of run from
+\code{nrun} returns the number of run from
 a \link{TargetedExperiment} object.
+
+\code{output.exists} returns \code{TRUE}
+for each output file that is found
+on the hard drive. If the experiment
+is a \link{PairedSamples} experiment,
+the method will return \code{TRUE} only
+if both forward and reverse
+output files exist.
+
+\code{input.exists} returns \code{TRUE}
+for each input file that is found
+on the hard drive. If the experiment
+is a \link{PairedSamples} experiment,
+the method will return \code{TRUE} only
+if both forward and reverse
+input files exist.
+
+\code{up2date} returns \code{TRUE}
+for each input and output file up to date.
+Namely, the timestamp of each input file
+must be smaller than its output file.
 }
