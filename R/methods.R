@@ -273,7 +273,7 @@ NULL
 #'
 #' @rdname accessors
 setGeneric("step", function(obj) standardGeneric("step"))
-setMethod("step", "TargetedExperimet", function(obj){
+setMethod("step", "TargetedExperiment", function(obj){
   return(obj@step)
 })
 
@@ -282,7 +282,7 @@ setMethod("step", "TargetedExperimet", function(obj){
 #' @export
 #' @rdname accessors
 setGeneric("step<-", function(obj, value) standardGeneric("step<-"))
-setMethod("step<-", "TargetedExperimet", function(obj, value){
+setMethod("step<-", "TargetedExperiment", function(obj, value){
   obj@step <- value
   obj
 })
@@ -296,7 +296,7 @@ setMethod("step<-", "TargetedExperimet", function(obj, value){
 #'
 #' @rdname accessors
 setGeneric("N", function(obj) standardGeneric("N"))
-setMethod("N", "TargetedExperimet", function(obj){
+setMethod("N", "TargetedExperiment", function(obj){
   return(obj@n)
 })
 
@@ -398,7 +398,7 @@ setMethod("setOutput", "PairedSamples", function(obj, value){
 #'
 #' @rdname accessors
 setGeneric("samples", function(obj) standardGeneric("samples"))
-setMethod("samples", "TargetedExperimet", function(obj){
+setMethod("samples", "TargetedExperiment", function(obj){
   obj@samples
 })
 
@@ -411,7 +411,7 @@ setMethod("samples", "TargetedExperimet", function(obj){
 #'
 #' @rdname accessors
 setGeneric("run", function(obj) standardGeneric("run"))
-setMethod("run", "TargetedExperimet", function(obj){
+setMethod("run", "TargetedExperiment", function(obj){
   obj@run
 })
 
@@ -424,7 +424,7 @@ setMethod("run", "TargetedExperimet", function(obj){
 #'
 #' @rdname accessors
 setGeneric("nrun", function(obj) standardGeneric("nrun"))
-setMethod("nrun", "TargetedExperimet", function(obj){
+setMethod("nrun", "TargetedExperiment", function(obj){
   length(unique(obj@run))
 })
 
@@ -614,7 +614,7 @@ setMethod("up2date", "PairedSamples", function(obj){
 #'
 #' @examples
 setGeneric("bySample", function(obj, fun, ..., thread = 1) standardGeneric("bySample"))
-setMethod("bySample", "TargetedExperimet", function(obj, fun, ..., thread = 1){
+setMethod("bySample", "TargetedExperiment", function(obj, fun, ..., thread = 1){
   f <- substitute(fun(...))
   .evalFunBy(obj, obj@samples, f, thread)
 })
@@ -637,7 +637,7 @@ setMethod("bySample", "TargetedExperimet", function(obj, fun, ..., thread = 1){
 #'
 #' @examples
 setGeneric("byRun", function(obj, fun, ..., thread = 1) standardGeneric("byRun"))
-setMethod("byRun", "TargetedExperimet", function(obj, fun, ..., thread = 1){
+setMethod("byRun", "TargetedExperiment", function(obj, fun, ..., thread = 1){
   f <- substitute(fun(...))
   .evalFunBy(obj, obj@run, f, thread)
 })
@@ -663,7 +663,7 @@ setMethod("byRun", "TargetedExperimet", function(obj, fun, ..., thread = 1){
 #'
 #' @examples
 setGeneric("byFct", function(obj, fun, by, ..., thread = 1) standardGeneric("byFct"))
-setMethod("byFct", "TargetedExperimet", function(obj, fun, by, ..., thread = 1){
+setMethod("byFct", "TargetedExperiment", function(obj, fun, by, ..., thread = 1){
   f <- substitute(fun(...))
   .evalFunBy(obj, by, f, thread)
 })
@@ -687,7 +687,7 @@ setMethod("byFct", "TargetedExperimet", function(obj, fun, by, ..., thread = 1){
 #'
 #' @examples
 setGeneric("byAll", function(obj, fun, ..., thread = 1) standardGeneric("byAll"))
-setMethod("byAll", "TargetedExperimet", function(obj, fun, ..., thread = 1){
+setMethod("byAll", "TargetedExperiment", function(obj, fun, ..., thread = 1){
   f <- substitute(fun(...))
   by <- rep("all", N(obj))
   res <- .evalFunBy(obj, by, f, thread)
@@ -723,7 +723,7 @@ setMethod("byAll", "TargetedExperimet", function(obj, fun, ..., thread = 1){
 #' @export
 setGeneric("sysBySample", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysBySample"))
-setMethod("sysBySample", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
+setMethod("sysBySample", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
                                                        stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -752,7 +752,7 @@ setMethod("sysBySample", "TargetedExperimet", function(obj, cmd, ..., stdout = "
 #' @examples
 setGeneric("sysByRun", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysByRun"))
-setMethod("sysByRun", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
+setMethod("sysByRun", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
                                                       stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -783,7 +783,7 @@ setMethod("sysByRun", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
 #' @examples
 setGeneric("sysByFct", function(obj, cmd, by, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysByFct"))
-setMethod("sysByFct", "TargetedExperimet", function(obj, cmd, by, ..., stdout = "",
+setMethod("sysByFct", "TargetedExperiment", function(obj, cmd, by, ..., stdout = "",
                                                   stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -811,7 +811,7 @@ setMethod("sysByFct", "TargetedExperimet", function(obj, cmd, by, ..., stdout = 
 #' @examples
 setGeneric("sysByAll", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysByAll"))
-setMethod("sysByAll", "TargetedExperimet", function(obj, cmd, ..., stdout = "",
+setMethod("sysByAll", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
                                                     stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -886,7 +886,7 @@ setMethod("getExperimentFromOutput", "PairedSamples", function(obj, new.output =
 
 
 ## SUBSETTING
-setMethod("[", "TargetedExperimet", function(x, i, drop="missing"){
+setMethod("[", "TargetedExperiment", function(x, i, drop="missing"){
   .samples = x@samples[i]
   .run = x@run[i]
   .n = length(.samples)
@@ -920,7 +920,7 @@ setMethod("[", "PairedSamples", function(x, i, drop="missing"){
                  forward.out = .forward.out, reverse.out = .reverse.out)
 })
 
-setMethod("length", "TargetedExperimet", function(x){
+setMethod("length", "TargetedExperiment", function(x){
   N(x)
 })
 
@@ -955,4 +955,88 @@ as.data.frame.PairedSamples <- function(x, row.names=NULL, optional=FALSE, ...){
              reverse.out = x@reverse.out, stringsAsFactors = F)
 }
 
+##### TASK METHODS
 
+#' Run a task
+#'
+#' @param obj the task
+#' @param out.exp function. This function will be called at the
+#'  end of the task to transform the experiment
+#' @param force if \code{TRUE} output will be overridden
+#'  even if it exists.
+#' @param quiet if \code{FALSE} no messages will be displayed
+#'
+#' @return a task object with after running the task
+#' @export
+#'
+#' @examples
+setGeneric("runTask", function(obj, out.exp = function(obj){obj},
+                               force = F, quiet = T) standardGeneric("runTask"))
+setMethod("runTask", signature = "Task", function(obj, out.exp = function(obj){obj},
+                                                  force = F, quiet = T){
+  done <- output.exists(obj@exp) & up2date(obj@exp)
+  if(!force & sum(done) != 0){
+    if(!quiet){
+      message("Some samples have been already processed:")
+      s <- paste(samples(obj@exp)[done], collapse = "\n")
+      message(s)
+
+      v <- as.vector(as.matrix(output(obj@exp)[done,]))
+      v <- paste(v[file.exists(v)], collapse = "\n")
+      message("Remove the following files if you want to repeat the task:")
+      message(v)
+    }
+    obj@out <- rep(NA, N(obj@exp))
+    obj@out[!done] <- obj@task(obj@exp[!done])
+  }else{
+    obj@out <- obj@task(obj@exp)
+  }
+
+  obj@exp <- out.exp(obj@exp)
+  return(obj)
+})
+
+## TASK ACCESSORS
+#' Set of methods to access the
+#' slots of a [Task] object
+#'
+#' @param obj a Task object
+#'
+#' @name task.accessors
+NULL
+
+
+#' Get experiment from task object
+#'
+#' \code{getExp} returns the experiment from
+#' a [Task] object
+#'
+#' @param obj Task.
+#'
+#' @return the Experiment
+#' @export
+#'
+#' @rdname task.accessors
+#' @examples
+setGeneric("getExp", function(obj) standardGeneric("getExp"))
+setMethod("getExp", "Task", function(obj){
+  obj@exp
+})
+
+#' Gte the output from a Task object
+#'
+#' \code{getOut} returns the output
+#'  from a task object
+#'
+#' @param obj
+#'
+#' @return the output from a Task object
+#'
+#' @export
+#'
+#' @rdname task.accessors
+#' @examples
+setGeneric("getOut", function(obj) standardGeneric("getOut"))
+setMethod("getOut", "Task", function(obj){
+  obj@out
+})

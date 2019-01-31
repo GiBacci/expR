@@ -104,3 +104,61 @@ runFromBasedir <- function(){
     basename(dirname(x))
   }
 }
+
+#' Format function to be used with
+#' [runTask] method. This
+#' function will return an experiment
+#' object identitcal to the one
+#' processed
+#'
+#' @return the same experiment in teh input
+#' @export
+#'
+#' @examples
+identity <- function(){
+  function(x) x
+}
+
+#' Format function to be used with
+#' [runTask] method. This
+#' function is a wrapper for the
+#' [getExperimentFromOutput] function
+#'
+#' @param new.output either a character vector (or a matrix with two
+#'  columns for paired experiments), NULL, or a function.
+#'  If a character vector is provided, output file will be named
+#'  accordingly otherwise the specified function will be used
+#'  to convert input files into output ones. If NULL, the
+#'  resulting experiment will hove no output.
+#'
+#' @return a TargetedExperiment
+#' @export
+#'
+#' @examples
+fromOut <- function(new.output){
+  function(x){
+    getExperimentFromOutput(x, new.output = new.output)
+  }
+}
+
+#' Format function to be used with
+#' [runTask] method. This
+#' function is a wrapper for the
+#' [setOutput] method
+#'
+#' @param value either a
+#' character vector (for single end experiments)
+#' or a character matrix with two columns
+#' (for paired end samples). In alternative
+#' it can be a function that will be used for
+#' building output names.
+#'
+#' @return a TargetedExperiment
+#' @export
+#'
+#' @examples
+setOut <- function(value){
+  function(x){
+    setOutput(x, value)
+  }
+}

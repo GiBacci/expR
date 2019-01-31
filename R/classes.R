@@ -16,7 +16,7 @@ NULL
 #' @return a Targeted experiment
 #'
 #' @example
-.TargetedExperimet <- setClass("TargetedExperimet",
+.TargetedExperimet <- setClass("TargetedExperiment",
                                slots = c(
                                  samples = "character",
                                  run = "character",
@@ -47,7 +47,7 @@ NULL
 #'
 #' @example
 .SingleEndSamples <- setClass("SingleEndSamples",
-                              contains = "TargetedExperimet",
+                              contains = "TargetedExperiment",
                               slots = c(
                                 files = "character",
                                 output = "character"
@@ -56,7 +56,7 @@ NULL
 #' Paired sample class
 #'
 #' This class represent a standard paired-end experiment.
-#' In addition to the [TargetedExperimet][.TargetedExperimet]
+#' In addition to the [TargetedExperiment][.TargetedExperiment]
 #' class it provides a vector of forward and reverse file paths
 #' togheter with a list of forward and reverse output
 #' paths. All slots can be used in the context
@@ -76,7 +76,7 @@ NULL
 #'
 #' @examples
 .PairedSamples <- setClass("PairedSamples",
-                           contains = "TargetedExperimet",
+                           contains = "TargetedExperiment",
                            slots = c(
                              forward = "character",
                              reverse = "character",
@@ -84,6 +84,41 @@ NULL
                              reverse.out = "character"
                            ))
 
+
+#' A task object
+#'
+#' An object that represents a possible
+#' task for an experiment.
+#'
+#' @slot task function. The real task. The first argument
+#'  must be a [TargetedExperiment] object
+#' @slot exp TargetedExperiment. The experiment
+#' @slot out ANY. Output of the task will be stored here
+#'
+#' @return A Task object
+#' @export
+#'
+#' @examples
+.Task <- setClass("Task",
+                 slots = c(
+                   task = "function",
+                   exp = "TargetedExperiment",
+                   out = "ANY"
+                 ))
+
+
+#' Constructor for Task objects
+#'
+#' @param exp TargetedExperiment. The experiment
+#' @param task function. The real task
+#'
+#' @return a Task object
+#' @export
+#'
+#' @examples
+Task <- function(exp, task){
+  .Task(task = task, exp = exp, out = NULL)
+}
 
 #' Validation function for [TergetedExperiment]
 #'
@@ -104,7 +139,7 @@ validTargetedExperimetObject <- function(object){
   }
 }
 # Set validity function
-setValidity("TargetedExperimet", validTargetedExperimetObject)
+setValidity("TargetedExperiment", validTargetedExperimetObject)
 
 #' Validation function for [PairedSamples]
 #'
@@ -153,7 +188,7 @@ validSingleEndSamplesObject <- function(object){
 setValidity("SingleEndSamples", validSingleEndSamplesObject)
 
 
-setMethod("show", signature = "TargetedExperimet", function(object){
+setMethod("show", signature = "TargetedExperiment", function(object){
   cat("An object of class", class(object), "\n", sep = " ")
   cat(" ", object@n, " samples\n", sep = "")
   cat(" ", length(unique(object@run)), " run/s", sep = "")

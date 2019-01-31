@@ -10,7 +10,7 @@ a paired experiment representation
 }
 \description{
 This class represent a standard paired-end experiment.
-In addition to the \link[=.TargetedExperimet]{TargetedExperimet}
+In addition to the \link[=.TargetedExperiment]{TargetedExperiment}
 class it provides a vector of forward and reverse file paths
 togheter with a list of forward and reverse output
 paths. All slots can be used in the context
