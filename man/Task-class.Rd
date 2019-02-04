@@ -3,23 +3,20 @@
 \docType{class}
 \name{Task-class}
 \alias{Task-class}
-\alias{.Task}
-\title{A task object}
+\alias{Task}
+\title{A Task object}
 \value{
 A Task object
 }
 \description{
-An object that represents a possible
-task for an experiment.
+An object that represents a Task of
+an experiment.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{task}}{function. The real task. The first argument
-must be a \link{TargetedExperiment} object}
+\item{\code{exp}}{\link{Experiment}, the experiment}
 
-\item{\code{exp}}{TargetedExperiment. The experiment}
-
-\item{\code{out}}{ANY. Output of the task will be stored here}
+\item{\code{out}}{list, output of the task will be stored here}
 }}
 

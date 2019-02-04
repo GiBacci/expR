@@ -28,8 +28,8 @@ formatOutput <- function(prefix, outdir = NULL, suffix = ""){
 #'
 #' Sample names will be converted from file
 #' names using this function. File names
-#' will be splitted depending on the [sep]
-#' param and the element corresponding to the [index]
+#' will be splitted depending on the \code{sep}
+#' param and the element corresponding to the \code{index}
 #' will be returned
 #'
 #' @param index numeric. The element to return
@@ -50,12 +50,11 @@ formatSample <- function(index = 1, sep = "[[:punct:]]"){
 
 #' Get run id from sequence header
 #'
-#' This function is used internally by other
-#' constructors to detect the run id of each file.
+#' This function is used to detect the run id of each file.
 #' The id is parsed from the sequence header.
 #'
-#' @param path character vector. The paths to the sequence file/s
-#' @param nrecords numeric. The number of record that must be read
+#' @param path Character vector, the paths to the sequence file/s
+#' @param nrecords Numeric, the number of records that must be read
 #'  before returning the run id
 #'
 #' @export
@@ -102,63 +101,5 @@ runFromHeader <- function(nrecords = 1){
 runFromBasedir <- function(){
   function(x){
     basename(dirname(x))
-  }
-}
-
-#' Format function to be used with
-#' [runTask] method. This
-#' function will return an experiment
-#' object identitcal to the one
-#' processed
-#'
-#' @return the same experiment in teh input
-#' @export
-#'
-#' @examples
-identity <- function(){
-  function(x) x
-}
-
-#' Format function to be used with
-#' [runTask] method. This
-#' function is a wrapper for the
-#' [getExperimentFromOutput] function
-#'
-#' @param new.output either a character vector (or a matrix with two
-#'  columns for paired experiments), NULL, or a function.
-#'  If a character vector is provided, output file will be named
-#'  accordingly otherwise the specified function will be used
-#'  to convert input files into output ones. If NULL, the
-#'  resulting experiment will hove no output.
-#'
-#' @return a TargetedExperiment
-#' @export
-#'
-#' @examples
-fromOut <- function(new.output){
-  function(x){
-    getExperimentFromOutput(x, new.output = new.output)
-  }
-}
-
-#' Format function to be used with
-#' [runTask] method. This
-#' function is a wrapper for the
-#' [setOutput] method
-#'
-#' @param value either a
-#' character vector (for single end experiments)
-#' or a character matrix with two columns
-#' (for paired end samples). In alternative
-#' it can be a function that will be used for
-#' building output names.
-#'
-#' @return a TargetedExperiment
-#' @export
-#'
-#' @examples
-setOut <- function(value){
-  function(x){
-    setOutput(x, value)
   }
 }

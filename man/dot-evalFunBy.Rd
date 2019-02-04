@@ -8,7 +8,7 @@ function}
 .evalFunBy(obj, fct, f, thread)
 }
 \arguments{
-\item{obj}{a \link{TargetedExperiment} object}
+\item{obj}{a \link{Experiment} object}
 
 \item{fct}{a factor}
 

@@ -4,6 +4,7 @@
 \alias{accessors}
 \alias{step}
 \alias{step<-}
+\alias{setStep}
 \alias{N}
 \alias{files}
 \alias{output}
@@ -15,11 +16,13 @@
 \alias{input.exists}
 \alias{up2date}
 \title{Set of methods to access or to set
-slots of a TargetedExperiment}
+slots of a Experiment}
 \usage{
 step(obj)
 
 step(obj) <- value
+
+setStep(obj, value)
 
 N(obj)
 
@@ -42,27 +45,30 @@ input.exists(obj)
 up2date(obj)
 }
 \arguments{
-\item{obj}{a TargetedExperiment object}
+\item{obj}{\link{Experiment}}
 
 \item{value}{the value to set. For the
 \code{setOutput} function, value must be a
 character vector (or a matrix for paired samples)
 or a function}
 
-\item{obj}{a \link{TargetExperiment} object}
+\item{obj}{\link{Experiment}}
 
-\item{obj}{a \link{TargetExperiment} object}
+\item{obj}{\link{Experiment}}
 
-\item{obj}{a \link{TargetExperiment} object}
+\item{obj}{\link{Experiment}}
 }
 \description{
 \code{step} returns/set the step of analysis
-from a \link{TargetedExperiment} object.
+from a \link{Experiment} object.
+
+\code{setStep} sets the step of analysis
+of an \link{Experiment} object.
 
 \code{N} returns the number of samples.
 
 \code{files} and \code{output} return the input/output
-files from a \link{TargetedExperiment} object. If object
+files from a \link{Experiment} object. If object
 is a \link{SingleEndSamples} it will return a
 vector of files otherwise it will return
 a data frame with forward and reverse files.
@@ -76,18 +82,18 @@ it can be a function that will be used for
 building output names.
 
 \code{samples} returns the samples from
-a \link{TargetedExperiment} object.
+a \link{Experiment} object.
 
 \code{run} returns the samples from
-a \link{TargetedExperiment} object.
+a \link{Experiment} object.
 
 \code{nrun} returns the number of run from
-a \link{TargetedExperiment} object.
+a \link{Experiment} object.
 
 \code{output.exists} returns \code{TRUE}
 for each output file that is found
 on the hard drive. If the experiment
-is a \link{PairedSamples} experiment,
+is a paired-end experiment,
 the method will return \code{TRUE} only
 if both forward and reverse
 output files exist.
@@ -95,7 +101,7 @@ output files exist.
 \code{input.exists} returns \code{TRUE}
 for each input file that is found
 on the hard drive. If the experiment
-is a \link{PairedSamples} experiment,
+is a paired-end experiment,
 the method will return \code{TRUE} only
 if both forward and reverse
 input files exist.

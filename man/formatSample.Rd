@@ -18,7 +18,7 @@ formatted sample names
 \description{
 Sample names will be converted from file
 names using this function. File names
-will be splitted depending on the \link{sep}
-param and the element corresponding to the \link{index}
+will be splitted depending on the \code{sep}
+param and the element corresponding to the \code{index}
 will be returned
 }

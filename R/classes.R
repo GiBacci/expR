@@ -3,10 +3,12 @@ NULL
 
 #' Main targeted experiment class
 #'
-#' This class represents a sequencing experiment usually
-#' involving sequencing a PRC products (such as 16S rRNA
-#' gene). Each sample may have one or two files (single-end
+#' This class represents a sequencing experiment.
+#' Each sample may have one or two files (single-end
 #' or paired-end sequencing) and a run identifier.
+#' Users should not inizialize this class unless their
+#' are sure of what they are doing. Instances of this
+#' class can be constructed using the method
 #'
 #' @slot samples Character vector, sample names
 #' @slot run Character vector, the run id for each sample
@@ -14,20 +16,21 @@ NULL
 #' @slot n Numeric vector, the number of samples
 #'
 #' @return a Targeted experiment
+#' @export
 #'
 #' @example
-.TargetedExperimet <- setClass("TargetedExperiment",
-                               slots = c(
-                                 samples = "character",
-                                 run = "character",
-                                 step = "character",
-                                 n = "numeric"
-                               ))
+Experiment <- setClass("Experiment",
+                              slots = c(
+                                samples = "character",
+                                run = "character",
+                                step = "character",
+                                n = "numeric"
+                              ))
 
 #' Single end experiment class
 #'
 #' This class represent a standard single-end experiment.
-#' In addition to the [TargetedExperimet][.TargetedExperimet]
+#' In addition to the [Experiment][.Experiment]
 #' class it provides a vector of file paths and a list of
 #' output paths. They can both be used in the context
 #' of other methods such as [by_sample()], for
@@ -47,7 +50,7 @@ NULL
 #'
 #' @example
 .SingleEndSamples <- setClass("SingleEndSamples",
-                              contains = "TargetedExperiment",
+                              contains = "Experiment",
                               slots = c(
                                 files = "character",
                                 output = "character"
@@ -56,7 +59,7 @@ NULL
 #' Paired sample class
 #'
 #' This class represent a standard paired-end experiment.
-#' In addition to the [TargetedExperiment][.TargetedExperiment]
+#' In addition to the [Experiment][Experiment]
 #' class it provides a vector of forward and reverse file paths
 #' togheter with a list of forward and reverse output
 #' paths. All slots can be used in the context
@@ -76,7 +79,7 @@ NULL
 #'
 #' @examples
 .PairedSamples <- setClass("PairedSamples",
-                           contains = "TargetedExperiment",
+                           contains = "Experiment",
                            slots = c(
                              forward = "character",
                              reverse = "character",
@@ -85,47 +88,30 @@ NULL
                            ))
 
 
-#' A task object
+#' A Task object
 #'
-#' An object that represents a possible
-#' task for an experiment.
+#' An object that represents a Task of
+#' an experiment.
 #'
-#' @slot task function. The real task. The first argument
-#'  must be a [TargetedExperiment] object
-#' @slot exp TargetedExperiment. The experiment
-#' @slot out ANY. Output of the task will be stored here
+#' @slot exp [Experiment], the experiment
+#' @slot out list, output of the task will be stored here
 #'
 #' @return A Task object
-#' @export
 #'
 #' @examples
-.Task <- setClass("Task",
-                 slots = c(
-                   task = "function",
-                   exp = "TargetedExperiment",
-                   out = "ANY"
-                 ))
+Task <- setClass("Task",
+                  slots = c(
+                    exp = "Experiment",
+                    out = "list"
+                  ))
 
 
-#' Constructor for Task objects
+#' Validation function for [Experiment]
 #'
-#' @param exp TargetedExperiment. The experiment
-#' @param task function. The real task
-#'
-#' @return a Task object
-#' @export
-#'
-#' @examples
-Task <- function(exp, task){
-  .Task(task = task, exp = exp, out = NULL)
-}
-
-#' Validation function for [TergetedExperiment]
-#'
-#' @param object a [TergetedExperiment]
+#' @param object a [Experiment]
 #'
 #' @return logical. TRUE if the object is valid
-validTargetedExperimetObject <- function(object){
+validExperimentObject <- function(object){
   if(length(object@run) != length(object@samples)){
     "Runs and samples differ in length"
   }else if(length(object@step) > 1){
@@ -139,7 +125,7 @@ validTargetedExperimetObject <- function(object){
   }
 }
 # Set validity function
-setValidity("TargetedExperiment", validTargetedExperimetObject)
+setValidity("Experiment", validExperimentObject)
 
 #' Validation function for [PairedSamples]
 #'
@@ -187,8 +173,8 @@ validSingleEndSamplesObject <- function(object){
 # Set validity
 setValidity("SingleEndSamples", validSingleEndSamplesObject)
 
-
-setMethod("show", signature = "TargetedExperiment", function(object){
+# Override show method
+setMethod("show", signature = "Experiment", function(object){
   cat("An object of class", class(object), "\n", sep = " ")
   cat(" ", object@n, " samples\n", sep = "")
   cat(" ", length(unique(object@run)), " run/s", sep = "")

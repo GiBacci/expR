@@ -7,16 +7,15 @@
 runFromHeader(nrecords = 1)
 }
 \arguments{
-\item{nrecords}{numeric. The number of record that must be read
+\item{nrecords}{Numeric, the number of records that must be read
 before returning the run id}
 
-\item{path}{character vector. The paths to the sequence file/s}
+\item{path}{Character vector, the paths to the sequence file/s}
 }
 \value{
 the run id as character
 }
 \description{
-This function is used internally by other
-constructors to detect the run id of each file.
+This function is used to detect the run id of each file.
 The id is parsed from the sequence header.
 }

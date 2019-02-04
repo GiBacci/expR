@@ -1,4 +1,6 @@
-#' Constructor for [TargetedExperiment].
+#### Constructors ########################
+
+#' Constructor for [Experiment].
 #'
 #' This functiona is used implicitly by other constructors
 #' and should not be used directly.
@@ -7,48 +9,10 @@
 #' @param run character vector. Run ids
 #' @param step character. The name of the analysis step
 #'
-#' @return an instance of [TargetedExperiment]
-.getTargetedExperiment <- function(samples, run, step){
-  .TargetedExperimet(samples = samples, run = run, step = step,
-                     n = length(samples))
-}
-
-
-#' Get run id from sequence header
-#'
-#' This function is used internally by other
-#' constructors to detect the run id of each file.
-#' The id is parsed from the sequence header.
-#'
-#' @param path character vector. The paths to the sequence file/s
-#' @param nrecords numeric. The number of record that must be read
-#'  before returning the run id
-#'
-#' @return the run id as character
-.getRunFromHeader <- function(path, nrecords = 1){
-  sapply(path, function(p){
-    con <- file(p)
-    if(summary(con)$class == "gzfile"){
-      close(con)
-      con <- gzfile(p)
-    }
-    on.exit(close(con))
-
-    res <- lapply(1:nrecords, readLines,
-                  con = con, n = 4)
-
-    ids <- sapply(res, "[", 1)
-    run <- unique(sapply(strsplit(ids, ":"),
-                         "[", 2))
-
-    if(length(run) > 1){
-      msg <- sprintf("More than one run found in file: %s",
-                     basename(path))
-      stop(msg)
-    }
-
-    return(run)
-  }, USE.NAMES = F)
+#' @return an instance of [Experiment]
+.getExperiment <- function(samples, run, step){
+  Experiment(samples = samples, run = run, step = step,
+             n = length(samples))
 }
 
 
@@ -68,75 +32,20 @@
 #'  using the function provided and samples will have the resulting
 #'  names.
 #' @param recursive logical. Should the listing recurse into directories?
-#' @param run one of "none", "folder", or "header". If "none" no
-#'  run will be specified, if "folder" the run id will be inferred from
-#'  the folder structure, and if "header" the run id will be parsed from
-#'  the header of the sequences.
+#' @param run it can be NULL, a character vector, or a funciton.
+#'  If it's NULL then no run will be assigned. If it's a character
+#'  vector run will be called using the names
+#'  provided. If it's a function file names will be processed
+#'  using the function provided and samples will have the resulting
+#'  names.
 #' @param output similar to samples parameter
 #'
 #' @return a Single-end experiment
-#' @export
 #'
 #' @examples
-#' \dontrun{
-#' single <- getSingleEndFromFilename(samples = formatSample(sep = "_"),
-#'                                    recursive = F,
-#'                                    run = "header",
-#'                                    output = formatOutptut(prefix = "out_"))
-#' }
 #' @seealso [formatSample()] and [formatOutptut()] for sample and output
 #'  formatting.
-
-# getSingleEndFromFilename <- function(maindir = ".",
-#                                      pattern = ".fastq",
-#                                      samples = NULL,
-#                                      recursive = F,
-#                                      run = c("none", "folder", "header"),
-#                                      output = NULL){
-#
-#   run <- match.arg(run)
-#
-#   files <- sort(list.files(path = maindir,
-#                            pattern = pattern,
-#                            recursive = recursive,
-#                            full.names = T))
-#
-#   if(length(files) == 0){
-#     stop("No file/s were found")
-#   }
-#
-#   if(run == "folder"){
-#     run <- basename(dirname(files))
-#   }else if(run == "header"){
-#     run <- .getRunFromHeader(files)
-#   }else{
-#     run <- rep("none", length(files))
-#   }
-#
-#   if(is.null(output)){
-#     o <- as.character(rep(NA, length(files)))
-#   }else if(is.character(output)){
-#     if(length(output) != length(files)){
-#       stop("Length of output files differs from sample length")
-#     }
-#     o <- output
-#   }else if(is.function(output)){
-#     o <- output(files)
-#   }
-#
-#   if(is.null(samples)){
-#     s <- basename(files)
-#   }else if(is.function(samples)){
-#     s <- samples(files)
-#   }else if(is.character(samples)){
-#     s <- samples
-#   }
-#
-#   experiment <- .getTargetedExperiment(samples = s, step = "raw",
-#                                        run = run)
-#   .SingleEndSamples(experiment, files = files, output = o)
-# }
-getSingleEndFromFilename <- function(maindir = ".",
+.getSingleEndFromFilename <- function(maindir = ".",
                                      pattern = ".fastq",
                                      samples = NULL,
                                      run = NULL,
@@ -150,6 +59,10 @@ getSingleEndFromFilename <- function(maindir = ".",
 
   if(length(files) == 0){
     stop("No file/s were found")
+  }
+
+  if(anyDuplicated(files)){
+    stop("Duplicated input file/s")
   }
 
   if(is.null(run)){
@@ -184,7 +97,11 @@ getSingleEndFromFilename <- function(maindir = ".",
     s <- samples
   }
 
-  experiment <- .getTargetedExperiment(samples = s, step = "raw", run = r)
+  if(anyDuplicated(s)){
+    warning("Duplicated sample names", call. = F, noBreaks. = T)
+  }
+
+  experiment <- .getExperiment(samples = s, step = "raw", run = r)
   .SingleEndSamples(experiment, files = files, output = o)
 }
 
@@ -214,35 +131,37 @@ getSingleEndFromFilename <- function(maindir = ".",
 #' @param output similar to samples parameter
 #'
 #' @return a paired-end experiment
-#' @export
 #'
 #' @examples
-getPairedFromFilename <- function(maindir = ".",
-                                  forward = "_R1_",
-                                  reverse = "_R2_",
-                                  samples = NULL,
-                                  run = NULL,
-                                  output = NULL,
-                                  recursive = F){
+#' @seealso [formatSample()], [formatOutptut()], and [runFromHeader()]
+#'  for sample, output, and run formatting.
+.getPairedFromFilename <- function(maindir = ".",
+                                   forward = "_R1_",
+                                   reverse = "_R2_",
+                                   samples = NULL,
+                                   run = NULL,
+                                   output = NULL,
+                                   recursive = F){
 
-  fwr <- getSingleEndFromFilename(maindir = maindir,
-                                  pattern = forward,
-                                  samples = samples,
-                                  recursive = recursive,
-                                  run = run,
-                                  output = output)
+  fwr <- .getSingleEndFromFilename(maindir = maindir,
+                                   pattern = forward,
+                                   samples = samples,
+                                   recursive = recursive,
+                                   run = run,
+                                   output = output)
 
-  rev <- getSingleEndFromFilename(maindir = maindir,
-                                  pattern = reverse,
-                                  samples = samples,
-                                  recursive = recursive,
-                                  run = run,
-                                  output = output)
+  rev <- suppressWarnings(
+    .getSingleEndFromFilename(maindir = maindir,
+                              pattern = reverse,
+                              samples = samples,
+                              recursive = recursive,
+                              run = run,
+                              output = output))
 
   if(all(fwr@samples == rev@samples)){
     if(all(fwr@run == rev@run)){
-      experiment <- .getTargetedExperiment(samples = fwr@samples, step = "raw",
-                                           run = fwr@run)
+      experiment <- .getExperiment(samples = fwr@samples, step = "raw",
+                                   run = fwr@run)
       .PairedSamples(experiment, forward = fwr@files, reverse = rev@files,
                      forward.out = fwr@output, reverse.out = rev@output)
     }else{
@@ -253,10 +172,85 @@ getPairedFromFilename <- function(maindir = ".",
   }
 }
 
-#' Set of methods to access or to set
-#' slots of a TargetedExperiment
+#' Construct an Experiment from file names
 #'
-#' @param obj a TargetedExperiment object
+#' This methods constructs an [Experiment] object
+#' from file names in a given directory.
+#'
+#' @param maindir Character, the path to the main directory
+#' @param pattern Character or Character vector of length two.
+#'  If a single character, a single-end experiment will be created
+#'  otherwise the first element will be used to detected forward
+#'  sequence files and the second element will be used to detect
+#'  reverse sequence files.
+#' @param samples either \code{NULL}, a Character vector, or a
+#'  function. If \code{NULL}, samples will have the same name
+#'  as the input files. If a vector, it will be used as vector
+#'  name for samples. If a function, input files will be converted
+#'  to sample names using the function provided.
+#' @param run either \code{NULL}, a Character vector, or a
+#'  function. In the first case samples will hove no run assigned,
+#'  whereas in the other two the behaviour will be the same of the
+#'  \code{sample} option.
+#' @param output either \code{NULL}, a Character vector, or a
+#'  function. Same behaviour as the \code{run} parameter.
+#' @param recursive logical, should the listing recurse into directories?
+#'
+#' @return an [Experiment] object
+#' @export
+#'
+#' @examples
+#' @seealso [formatSample()], [formatOutptut()], and [runFromHeader()]
+#' or [runFromBasedir()] for sample, output, and run formatting.
+expFromFiles <-  function(maindir = ".",
+                          pattern = ".fastq",
+                          samples = NULL,
+                          run = NULL,
+                          output = NULL,
+                          recursive = F){
+  if(length(pattern) == 1){
+    .getSingleEndFromFilename(maindir = maindir,
+                              pattern = pattern,
+                              samples = samples,
+                              run = run,
+                              output = output,
+                              recursive = recursive)
+  }else if(length(pattern) == 2){
+    .getPairedFromFilename(maindir = maindir,
+                           forward = pattern[1],
+                           reverse = pattern[2],
+                           samples = samples,
+                           run = run,
+                           output = output,
+                           recursive = recursive)
+  }else{
+    stop("Pattern length must be 1 or 2")
+  }
+}
+
+#' Task constructor
+#'
+#' It creates a [Task] object given
+#' the experiment that will be
+#' used as input.
+#'
+#' @param exp [Experiment], the experiment on which the
+#'  task will be executed
+#'
+#' @return a [Task] object
+#' @export
+#'
+#' @examples
+newTask <- function(exp){
+  Task(exp = exp, out = list())
+}
+
+
+## ACCESSORS #################################
+#' Set of methods to access or to set
+#' slots of a Experiment
+#'
+#' @param obj [Experiment]
 #' @param value the value to set. For the
 #'  \code{setOutput} function, value must be a
 #'  character vector (or a matrix for paired samples)
@@ -267,13 +261,13 @@ NULL
 #' Step of Analysis
 #'
 #' \code{step} returns/set the step of analysis
-#' from a [TargetedExperiment] object.
+#' from a [Experiment] object.
 #'
 #' @export
 #'
 #' @rdname accessors
 setGeneric("step", function(obj) standardGeneric("step"))
-setMethod("step", "TargetedExperiment", function(obj){
+setMethod("step", "Experiment", function(obj){
   return(obj@step)
 })
 
@@ -282,7 +276,20 @@ setMethod("step", "TargetedExperiment", function(obj){
 #' @export
 #' @rdname accessors
 setGeneric("step<-", function(obj, value) standardGeneric("step<-"))
-setMethod("step<-", "TargetedExperiment", function(obj, value){
+setMethod("step<-", "Experiment", function(obj, value){
+  obj@step <- value
+  obj
+})
+
+#' Step of Analysis
+#'
+#' \code{setStep} sets the step of analysis
+#' of an [Experiment] object.
+#'
+#' @export
+#' @rdname accessors
+setGeneric("setStep", function(obj, value) standardGeneric("setStep"))
+setMethod("setStep", "Experiment", function(obj, value){
   obj@step <- value
   obj
 })
@@ -296,7 +303,7 @@ setMethod("step<-", "TargetedExperiment", function(obj, value){
 #'
 #' @rdname accessors
 setGeneric("N", function(obj) standardGeneric("N"))
-setMethod("N", "TargetedExperiment", function(obj){
+setMethod("N", "Experiment", function(obj){
   return(obj@n)
 })
 
@@ -304,7 +311,7 @@ setMethod("N", "TargetedExperiment", function(obj){
 #' Get input files
 #'
 #' \code{files} and \code{output} return the input/output
-#' files from a [TargetedExperiment] object. If object
+#' files from a [Experiment] object. If object
 #' is a [SingleEndSamples] it will return a
 #' vector of files otherwise it will return
 #' a data frame with forward and reverse files.
@@ -323,7 +330,7 @@ setMethod("files", "PairedSamples", function(obj){
 })
 
 #' This method return the output files from
-#' a TargetedExperiment object. If object
+#' a Experiment object. If object
 #' is a [SingleEndSamples] it will return a
 #' vector of files otherwise it will return
 #' a data frame with forward and reverse files.
@@ -392,39 +399,39 @@ setMethod("setOutput", "PairedSamples", function(obj, value){
 #' Get samples from experiment
 #'
 #' \code{samples} returns the samples from
-#' a [TargetedExperiment] object.
+#' a [Experiment] object.
 #'
 #' @export
 #'
 #' @rdname accessors
 setGeneric("samples", function(obj) standardGeneric("samples"))
-setMethod("samples", "TargetedExperiment", function(obj){
+setMethod("samples", "Experiment", function(obj){
   obj@samples
 })
 
 #' Get run from experiment
 #'
 #' \code{run} returns the samples from
-#' a [TargetedExperiment] object.
+#' a [Experiment] object.
 #'
 #' @export
 #'
 #' @rdname accessors
 setGeneric("run", function(obj) standardGeneric("run"))
-setMethod("run", "TargetedExperiment", function(obj){
+setMethod("run", "Experiment", function(obj){
   obj@run
 })
 
 #' Get the number of run from experiment
 #'
 #' \code{nrun} returns the number of run from
-#' a [TargetedExperiment] object.
+#' a [Experiment] object.
 #'
 #' @export
 #'
 #' @rdname accessors
 setGeneric("nrun", function(obj) standardGeneric("nrun"))
-setMethod("nrun", "TargetedExperiment", function(obj){
+setMethod("nrun", "Experiment", function(obj){
   length(unique(obj@run))
 })
 
@@ -433,12 +440,12 @@ setMethod("nrun", "TargetedExperiment", function(obj){
 #' \code{output.exists} returns \code{TRUE}
 #' for each output file that is found
 #' on the hard drive. If the experiment
-#' is a [PairedSamples] experiment,
+#' is a paired-end experiment,
 #' the method will return \code{TRUE} only
 #' if both forward and reverse
 #' output files exist.
 #'
-#' @param obj a [TargetExperiment] object
+#' @param obj [Experiment]
 #'
 #' @export
 #'
@@ -458,12 +465,12 @@ setMethod("output.exists", "PairedSamples", function(obj){
 #' \code{input.exists} returns \code{TRUE}
 #' for each input file that is found
 #' on the hard drive. If the experiment
-#' is a [PairedSamples] experiment,
+#' is a paired-end experiment,
 #' the method will return \code{TRUE} only
 #' if both forward and reverse
 #' input files exist.
 #'
-#' @param obj a [TargetExperiment] object
+#' @param obj [Experiment]
 #'
 #' @export
 #'
@@ -486,14 +493,16 @@ setMethod("input.exists", "PairedSamples", function(obj){
 #' Namely, the timestamp of each input file
 #' must be smaller than its output file.
 #'
-#' @param obj a [TargetExperiment] object
+#' @param obj [Experiment]
 #'
 #' @export
 #'
 #' @rdname accessors
 setGeneric("up2date", function(obj) standardGeneric("up2date"))
 setMethod("up2date", "SingleEndSamples", function(obj){
-  file.mtime(files(obj)) < file.mtime(output(obj))
+  res <- file.mtime(files(obj)) < file.mtime(output(obj))
+  res[is.na(res)] <- FALSE
+  res
 })
 
 setMethod("up2date", "PairedSamples", function(obj){
@@ -506,19 +515,43 @@ setMethod("up2date", "PairedSamples", function(obj){
   O.f <- file.mtime(O[,1])
   O.r <- file.mtime(O[,2])
 
-  I.f < O.f & I.r < O.r
+  res <- I.f < O.f & I.r < O.r
+  res[is.na(res)] <- FALSE
+  res
 })
+
+### FUNCTION METHODS #################
+#' Set of methods to apply a function
+#' over an Experiment object
+#'
+#' If threads > 1 and the [doMC] package
+#' has been installed, multiple processes will
+#' be executed at the same time.
+#'
+#' @param obj [Experiment]
+#' @param fun function, the function that will be applied
+#'  to each subset of the [Experiment]
+#' @param by a factor. The experiment will be spitted according
+#'  to this factor
+#' @param ... additional parameters to fun
+#' @param thread integer, the number of parallel process
+#'  to execute
+#'
+#' @return a list. The length of the list depends on the
+#'  factor used to split the experiment. \code{byAll} returns
+#'  a single object.
+#' @name byMethods
+NULL
 
 #' Mothod used internally to eval
 #' function
 #'
-#' @param obj a [TargetedExperiment] object
+#' @param obj a [Experiment] object
 #' @param fct a factor
 #' @param f a name object. Function parameters
 #' @param thread numeric. The number of thread
 #'
 #' @return a list of bject returned by the function
-#' @export
 .evalFunBy <- function(obj, fct, f, thread){
   if(!is.factor(fct)){
     fct <- as.factor(fct)
@@ -555,89 +588,29 @@ setMethod("up2date", "PairedSamples", function(obj){
   }
 }
 
-#' Mothod used internally to eval
-#' a system call
-#'
-#' @param list a list of environments (data frame)
-#' @param command the command to be executed
-#' @param args a name object. Thsi will be evalueted
-#'  and passed to the args param of [system2] function
-#' @param stdout passed to stdout of [system2]
-#' @param stderr passed to stderr of [system2]
-#' @param thread numeric. The number of thread
-#'
-#' @return a list of bject returned by [system2] function
-#' @export
-.evalCommandList <- function(list, command, args, stdout, stderr, thread){
-  print(ls(.GlobalEnv))
-  if(thread > 1 & requireNamespace("foreach", quietly = TRUE) &
-     requireNamespace("doParallel", quietly = TRUE)){
-
-    # foreach <- foreach::foreach
-    `%dopar%` <- foreach::`%dopar%`
-
-    cl <- parallel::makeCluster(thread)
-    parallel::clusterExport(cl = cl, varlist = ls(.GlobalEnv))
-    doParallel::registerDoParallel(cl, cores = thread)
-    on.exit(parallel::stopCluster(cl))
-
-    foreach::foreach(i = seq_along(list)) %dopar% {
-      d <- list[[i]]
-      a <- eval(args, envir = d, enclos = .GlobalEnv)
-      system2(command = command, args = a,
-              stdout = stdout, stderr = stderr)
-    }
-  } else {
-    lapply(list, function(d) {
-      a <- eval(args, envir = d, enclos = .GlobalEnv)
-      system2(command = command, args = a,
-              stdout = stdout, stderr = stderr)
-    })
-  }
-}
-
 #' Run a function for each sample
 #'
-#' This function will execute a function call
-#' for each sample of the experiment provided.
-#' If threads > 1 and the doParallel package
-#' has been installed, multiple processes will
-#' be executed at the same time.
+#' \code{bySample} the function is called splitting
+#'  the experiment into sample/s.
 #'
-#' @param obj the experiment
-#' @param fun the function
-#' @param ... additional parameters to fun
-#' @param thread the number of parallel process to execute
-#'
-#' @return a list of object
 #' @export
-#'
-#' @examples
+#' @rdname byMethods
 setGeneric("bySample", function(obj, fun, ..., thread = 1) standardGeneric("bySample"))
-setMethod("bySample", "TargetedExperiment", function(obj, fun, ..., thread = 1){
+setMethod("bySample", "Experiment", function(obj, fun, ..., thread = 1){
   f <- substitute(fun(...))
   .evalFunBy(obj, obj@samples, f, thread)
 })
 
 #' Run a function for each run
 #'
-#' This function will execute a function call
-#' for each run of the experiment provided.
-#' If threads > 1 and the doParallel package
-#' has been installed, multiple processes will
-#' be executed at the same time.
+#' \code{byRun} the function is called splitting
+#'  the experiment into run/s.
 #'
-#' @param obj the experiment
-#' @param fun the function
-#' @param ... additional parameters to fun
-#' @param thread the number of parallel process to execute
-#'
-#' @return a list of object
 #' @export
 #'
-#' @examples
+#' @rdname byMethods
 setGeneric("byRun", function(obj, fun, ..., thread = 1) standardGeneric("byRun"))
-setMethod("byRun", "TargetedExperiment", function(obj, fun, ..., thread = 1){
+setMethod("byRun", "Experiment", function(obj, fun, ..., thread = 1){
   f <- substitute(fun(...))
   .evalFunBy(obj, obj@run, f, thread)
 })
@@ -645,25 +618,14 @@ setMethod("byRun", "TargetedExperiment", function(obj, fun, ..., thread = 1){
 #' Run a function splitting the experiment
 #' based on a factor
 #'
-#' This function will execute a function call
-#' for each set of the experiment.
-#' If threads > 1 and the doParallel package
-#' has been installed, multiple processes will
-#' be executed at the same time.
+#' \code{byFct} the function is called splitting
+#'  the experiment according to the factor provided.
 #'
-#' @param obj the experiment
-#' @param fun the function
-#' @param by a factor. The experiment will be spitted according
-#'  to this factor
-#' @param ... additional parameters to fun
-#' @param thread the number of parallel process to execute
-#'
-#' @return a list of object
 #' @export
 #'
-#' @examples
+#' @rdname byMethods
 setGeneric("byFct", function(obj, fun, by, ..., thread = 1) standardGeneric("byFct"))
-setMethod("byFct", "TargetedExperiment", function(obj, fun, by, ..., thread = 1){
+setMethod("byFct", "Experiment", function(obj, fun, by, ..., thread = 1){
   f <- substitute(fun(...))
   .evalFunBy(obj, by, f, thread)
 })
@@ -671,59 +633,68 @@ setMethod("byFct", "TargetedExperiment", function(obj, fun, by, ..., thread = 1)
 
 #' Run a function on the whole experiment
 #'
-#' This function will execute a function call
-#' on the whole experiment.
-#' If threads > 1 and the doParallel package
-#' has been installed, multiple processes will
-#' be executed at the same time.
+#' \code{byAll} the function is called using all files
+#'  as input/output.
 #'
-#' @param obj the experiment
-#' @param fun the function
-#' @param ... additional parameters to fun
-#' @param thread the number of parallel process to execute
-#'
-#' @return an object
 #' @export
 #'
-#' @examples
+#' @rdname byMethods
 setGeneric("byAll", function(obj, fun, ..., thread = 1) standardGeneric("byAll"))
-setMethod("byAll", "TargetedExperiment", function(obj, fun, ..., thread = 1){
+setMethod("byAll", "Experiment", function(obj, fun, ..., thread = 1){
   f <- substitute(fun(...))
   by <- rep("all", N(obj))
   res <- .evalFunBy(obj, by, f, thread)
   res[[1]]
 })
 
-
-#' Launches a system call for each sample
+#' Run a function on each file/s
 #'
-#' This function will execute a system call
-#' for each sample of the experiment provided.
-#' If threads > 1 and the doParallel package
+#' \code{byFile} the function is called on each
+#'  file separately.
+#'
+#' @export
+#'
+#' @rdname byMethods
+setGeneric("byFile", function(obj, fun, ..., thread = 1) standardGeneric("byFile"))
+setMethod("byFile", "Experiment", function(obj, fun, ..., thread = 1){
+  f <- substitute(fun(...))
+  by <- paste0("file_", seq(1, N(obj)))
+  by <- factor(by, levels = by)
+  .evalFunBy(obj, by, f, thread)
+})
+
+### SYSTEM FUNCTION METHODS #################
+#' Set of methods to apply a system call
+#' over an Experiment object
+#'
+#' If threads > 1 and the [doMC] package
 #' has been installed, multiple processes will
 #' be executed at the same time.
 #'
-#' @param obj the experiment
-#' @param cmd the system command
+#' @param obj [Experiment]
+#' @param cmd character, a system command
+#' @param by factor, the experiment will be spitted according
+#'  to this factor
 #' @param ... argument/s to the command
 #' @param stdout passed to stdout of [system2]
 #' @param stderr passed to stderr of [system2]
-#' @param thread the number of parallel process to execute
+#' @param thread integer, the number of parallel process to execute
 #'
-#' @return a list of object
+#' @return a list of bject returned by the function
+#'
+#' @name sysByMethods
+NULL
+
+#' Launches a system call for each sample
+#'
+#' \code{sysBySample} the function is called splitting
+#'  the experiment into sample/s.
+#'
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#'
-#' # Run only in unix systems
-#' sysBySample(exp, "echo", samples)
-#'
-#' }
-#' @export
+#' @rdname sysByMethods
 setGeneric("sysBySample", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysBySample"))
-setMethod("sysBySample", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
+setMethod("sysBySample", "Experiment", function(obj, cmd, ..., stdout = "",
                                                        stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -733,26 +704,14 @@ setMethod("sysBySample", "TargetedExperiment", function(obj, cmd, ..., stdout = 
 
 #' Launches a system call for each run
 #'
-#' This function will execute a system call
-#' for each run of the experiment provided.
-#' If threads > 1 and the doParallel package
-#' has been installed, multiple processes will
-#' be executed at the same time.
-#'
-#' @param obj the experiment
-#' @param cmd the system command
-#' @param ... argument/s to the command
-#' @param stdout passed to stdout of [system2]
-#' @param stderr passed to stderr of [system2]
-#' @param thread the number of parallel process to execute
-#'
-#' @return a list of object
+#' \code{sysByRun} the function is called splitting
+#'  the experiment into run/s.
 #' @export
 #'
-#' @examples
+#' @rdname sysByMethods
 setGeneric("sysByRun", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysByRun"))
-setMethod("sysByRun", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
+setMethod("sysByRun", "Experiment", function(obj, cmd, ..., stdout = "",
                                                       stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -762,28 +721,15 @@ setMethod("sysByRun", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
 #' Launches a system call by splitting the experiment
 #' based on a factor
 #'
-#' This function will execute a system call
-#' for each set of the experiment.
-#' If threads > 1 and the doParallel package
-#' has been installed, multiple processes will
-#' be executed at the same time.
+#' \code{sysByFct} the function is called splitting
+#'  the experiment according to the factor provided.
 #'
-#' @param obj the experiment
-#' @param cmd the system command
-#' @param by a factor. The experiment will be spitted according
-#'  to this factor
-#' @param ... argument/s to the command
-#' @param stdout passed to stdout of [system2]
-#' @param stderr passed to stderr of [system2]
-#' @param thread the number of parallel process to execute
-#'
-#' @return a list of object
 #' @export
 #'
-#' @examples
+#' @rdname sysByMethods
 setGeneric("sysByFct", function(obj, cmd, by, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysByFct"))
-setMethod("sysByFct", "TargetedExperiment", function(obj, cmd, by, ..., stdout = "",
+setMethod("sysByFct", "Experiment", function(obj, cmd, by, ..., stdout = "",
                                                   stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -792,26 +738,15 @@ setMethod("sysByFct", "TargetedExperiment", function(obj, cmd, by, ..., stdout =
 
 #' Run a system call on the whole experiment
 #'
-#' This function will execute a system call
-#' for the whole experiment.
-#' If threads > 1 and the doParallel package
-#' has been installed, multiple processes will
-#' be executed at the same time.
+#' \code{sysByAll} the function is called using all files
+#'  as input/output.
 #'
-#' @param obj the experiment
-#' @param cmd the system command
-#' @param ... argument/s to the command
-#' @param stdout passed to stdout of [system2]
-#' @param stderr passed to stderr of [system2]
-#' @param thread the number of parallel process to execute
-#'
-#' @return an object
 #' @export
 #'
-#' @examples
+#' @rdname sysByMethods
 setGeneric("sysByAll", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
   standardGeneric("sysByAll"))
-setMethod("sysByAll", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
+setMethod("sysByAll", "Experiment", function(obj, cmd, ..., stdout = "",
                                                     stderr = "", thread = 1){
   f <- substitute(system2(command = cmd, args = c(...),
                           stdout = stdout, stderr = stderr))
@@ -821,13 +756,34 @@ setMethod("sysByAll", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
   res[[1]]
 })
 
+#' Run a system call on each file of the experiment
+#'
+#' \code{sysByFile} the function is called on each
+#'  file separately.
+#'
+#' @export
+#'
+#' @rdname sysByMethods
+setGeneric("sysByFile", function(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
+  standardGeneric("sysByFile"))
+setMethod("sysByFile", "Experiment", function(obj, cmd, ..., stdout = "",
+                                             stderr = "", thread = 1){
+  f <- substitute(system2(command = cmd, args = c(...),
+                          stdout = stdout, stderr = stderr))
+
+  by <- paste0("file_", seq(1, N(obj)))
+  by <- factor(by, levels = by)
+
+  .evalFunBy(obj, by, f, thread)
+})
+
 #' Get an experiment from the output of another one.
 #'
 #' This function will convert an experiment to another one
 #' by inverting the output files as input. The new output files
 #' will be generate depending on the [new.output] param
 #'
-#' @param obj a TargetedExperiment. The experiment to convert
+#' @param obj a Experiment. The experiment to convert
 #' @param new.output either a character vector (or a matrix with two
 #'  columns for paired experiments), NULL, or a function.
 #'  If a character vector is provided, output file will be named
@@ -835,13 +791,13 @@ setMethod("sysByAll", "TargetedExperiment", function(obj, cmd, ..., stdout = "",
 #'  to convert input files into output ones. If NULL, the
 #'  resulting experiment will hove no output.
 #'
-#' @return a TargetedExperiment
+#' @return a Experiment
 #' @export
 #'
 #' @examples
-setGeneric("getExperimentFromOutput", function(obj, new.output = NULL)
-  standardGeneric("getExperimentFromOutput"))
-setMethod("getExperimentFromOutput", "SingleEndSamples", function(obj, new.output = NULL){
+setGeneric("out2exp", function(obj, new.output = NULL)
+  standardGeneric("out2exp"))
+setMethod("out2exp", "SingleEndSamples", function(obj, new.output = NULL){
   if(is.null(new.output)){
     new.o <- as.character(rep(NA, obj@n))
   }else if(is.character(new.output)){
@@ -857,7 +813,7 @@ setMethod("getExperimentFromOutput", "SingleEndSamples", function(obj, new.outpu
   return(obj)
 })
 
-setMethod("getExperimentFromOutput", "PairedSamples", function(obj, new.output = NULL){
+setMethod("out2exp", "PairedSamples", function(obj, new.output = NULL){
   if(is.null(new.output)){
     new.o.fwr <- as.character(rep(NA, obj@n))
     new.o.rev <- as.character(rep(NA, obj@n))
@@ -885,12 +841,45 @@ setMethod("getExperimentFromOutput", "PairedSamples", function(obj, new.output =
 })
 
 
+#' Removal of output file/s from a [Experiment]
+#' object
+#'
+#' This method will remove any output file/s
+#' stored in the given in the [Experiment]
+#' object
+#'
+#' @param obj a [Experiment]
+#'
+#' @return \code{TRUE} for each file correctly
+#'  removed
+#'
+#' @export
+#'
+#' @examples
+setGeneric("clearOutput", function(obj) standardGeneric("clearOutput"))
+setMethod("clearOutput", "SingleEndSamples", function(obj){
+  v <- unique(as.vector(output(obj)))
+  v <- v[file.exists(v)]
+  r <- file.remove(v)
+
+  names(r) <- v
+  r
+})
+setMethod("clearOutput", "PairedSamples", function(obj){
+  v <- unique(as.vector(as.matrix(output(obj))))
+  v <- v[file.exists(v)]
+  r <- file.remove(v)
+
+  names(r) <- v
+  r
+})
+
 ## SUBSETTING
-setMethod("[", "TargetedExperiment", function(x, i, drop="missing"){
+setMethod("[", "Experiment", function(x, i, drop="missing"){
   .samples = x@samples[i]
   .run = x@run[i]
   .n = length(.samples)
-  .TargetedExperimet(x, samples = .samples, run = .run, n = .n)
+  Experiment(x, samples = .samples, run = .run, n = .n)
 })
 
 setMethod("[", "SingleEndSamples", function(x, i, drop="missing"){
@@ -920,13 +909,13 @@ setMethod("[", "PairedSamples", function(x, i, drop="missing"){
                  forward.out = .forward.out, reverse.out = .reverse.out)
 })
 
-setMethod("length", "TargetedExperiment", function(x){
+setMethod("length", "Experiment", function(x){
   N(x)
 })
 
-#' Convert a Targeted experiment into a data frame
+#' Convert an experiment into a data frame
 #'
-#' @param x the experiment
+#' @param x [Experiment]
 #' @param row.names ignored
 #' @param optional ignored
 #' @param ... ignored
@@ -935,83 +924,127 @@ setMethod("length", "TargetedExperiment", function(x){
 #' @export
 #'
 #' @examples
-as.data.frame.TargetedExperimet <- function(x, row.names=NULL, optional=FALSE, ...){
+as.data.frame.Experiment <- function(x, row.names=NULL, optional=FALSE, ...){
   data.frame(samples = x@samples, run = x@run, step = rep(x@step, x@n),
              stringsAsFactors = F)
 }
 
-#' @rdname as.data.frame.TargetedExperimet
+#' @rdname as.data.frame.Experiment
 #' @export
 as.data.frame.SingleEndSamples <- function(x, row.names=NULL, optional=FALSE, ...){
-  data.frame(as.data.frame.TargetedExperimet(x), files = x@files,
+  data.frame(as.data.frame.Experiment(x), files = x@files,
              output = x@output, stringsAsFactors = F)
 }
 
-#' @rdname as.data.frame.TargetedExperimet
+#' @rdname as.data.frame.Experiment
 #' @export
 as.data.frame.PairedSamples <- function(x, row.names=NULL, optional=FALSE, ...){
-  data.frame(as.data.frame.TargetedExperimet(x), forward = x@forward,
+  data.frame(as.data.frame.Experiment(x), forward = x@forward,
              reverse = x@reverse, forward.out = x@forward.out,
              reverse.out = x@reverse.out, stringsAsFactors = F)
 }
 
 ##### TASK METHODS
 
-#' Run a task
+#' Run a Task on the experiment
 #'
-#' @param obj the task
-#' @param out.exp function. This function will be called at the
-#'  end of the task to transform the experiment
-#' @param force if \code{TRUE} output will be overridden
-#'  even if it exists.
-#' @param quiet if \code{FALSE} no messages will be displayed
+#' a Task (namely a function) will be
+#' called using the experiment as first
+#' input.
 #'
-#' @return a task object with after running the task
+#' @param obj a [Task] object
+#' @param task a function. The first argument of
+#'  this function will be the [Experiment]
+#'  object contained in the [Task]
+#' @param ... additianl arguments to be passed
+#'  to the funciton call
+#' @param check.out if \code{TRUE} the [Task] won't be
+#'  executedon existing output file/s
+#' @param quiet if \code{TRUE} no message will be
+#'  displayed
+#'
+#' @return a [Task] object
 #' @export
 #'
 #' @examples
-setGeneric("runTask", function(obj, out.exp = function(obj){obj},
-                               force = F, quiet = T) standardGeneric("runTask"))
-setMethod("runTask", signature = "Task", function(obj, out.exp = function(obj){obj},
-                                                  force = F, quiet = T){
-  done <- output.exists(obj@exp) & up2date(obj@exp)
-  if(!force & sum(done) != 0){
+setGeneric("runTask", function(obj, task, ..., check.out = F, quiet = T) standardGeneric("runTask"))
+setMethod("runTask", signature = "Task", function(obj, task, ..., check.out = F, quiet = T){
+
+  exp <- obj@exp
+  out <- obj@out
+  index <- length(out) + 1
+
+  done <- output.exists(exp) & up2date(exp)
+
+  if(check.out & sum(done) != 0){
     if(!quiet){
       message("Some samples have been already processed:")
-      s <- paste(samples(obj@exp)[done], collapse = "\n")
+      s <- paste(samples(exp)[done], collapse = "\n")
       message(s)
 
-      v <- as.vector(as.matrix(output(obj@exp)[done,]))
+      v <- as.vector(as.matrix(output(exp)[done,]))
       v <- paste(v[file.exists(v)], collapse = "\n")
       message("Remove the following files if you want to repeat the task:")
       message(v)
     }
-    obj@out <- rep(NA, N(obj@exp))
-    obj@out[!done] <- obj@task(obj@exp[!done])
+    e <- exp[!done]
   }else{
-    obj@out <- obj@task(obj@exp)
+    e <- exp
   }
 
-  obj@exp <- out.exp(obj@exp)
+  s <- substitute(task(e, ...))
+  out[[index]] <- eval(s, enclos = .GlobalEnv)
+
+  obj@out <- out
   return(obj)
 })
 
-## TASK ACCESSORS
-#' Set of methods to access the
-#' slots of a [Task] object
+
+#' Change the experimen withing a [Task] object
 #'
-#' @param obj a Task object
+#' The experiment contained in a [Task] object
+#' will be changed according to the \code{new}
+#' parameter.
+#'
+#' @param obj a [Task] object
+#' @param new either a new [Experiment]
+#'  or a function that will be used to process
+#'  the [Experiment] contained in the Task
+#' @param ... additional argument that will be
+#'  passed to \code{new} if it is function
+#'  (ignored otherwise).
+#'
+#' @return a [Task] object
+#' @export
+#'
+#' @examples
+setGeneric("changeExp", function(obj, new, ...) standardGeneric("changeExp"))
+setMethod("changeExp", "Task", function(obj, new, ...){
+  if(is.function(new)){
+    exp <- obj@exp
+    s <- substitute(new(exp, ...))
+    obj@exp <- eval(s)
+  }else{
+    obj@exp <- new
+  }
+  return(obj)
+})
+## TASK OUTPUT ACCESSORS
+#' Set of methods to access the
+#' slots of a [TaskOutput] object
+#'
+#' @param obj a TaskOutput object
 #'
 #' @name task.accessors
 NULL
 
 
-#' Get experiment from task object
+#' Get experiment from a [Task] object
 #'
 #' \code{getExp} returns the experiment from
 #' a [Task] object
 #'
-#' @param obj Task.
+#' @param obj a [Task] object.
 #'
 #' @return the Experiment
 #' @export
@@ -1023,14 +1056,14 @@ setMethod("getExp", "Task", function(obj){
   obj@exp
 })
 
-#' Gte the output from a Task object
+#' Gte the output from a [Task] object
 #'
 #' \code{getOut} returns the output
-#'  from a task object
+#'  from a [Task] object
 #'
 #' @param obj
 #'
-#' @return the output from a Task object
+#' @return the output from a [Task] object
 #'
 #' @export
 #'

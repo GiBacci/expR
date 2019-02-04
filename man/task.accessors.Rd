@@ -5,28 +5,28 @@
 \alias{getExp}
 \alias{getOut}
 \title{Set of methods to access the
-slots of a \link{Task} object}
+slots of a \link{TaskOutput} object}
 \usage{
 getExp(obj)
 
 getOut(obj)
 }
 \arguments{
-\item{obj}{a Task object}
+\item{obj}{a TaskOutput object}
 
-\item{obj}{Task.}
+\item{obj}{a \link{Task} object.}
 
 \item{obj}{}
 }
 \value{
 the Experiment
 
-the output from a Task object
+the output from a \link{Task} object
 }
 \description{
 \code{getExp} returns the experiment from
 a \link{Task} object
 
 \code{getOut} returns the output
-from a task object
+from a \link{Task} object
 }

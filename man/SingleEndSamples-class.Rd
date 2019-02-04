@@ -10,7 +10,7 @@ a single end experiment
 }
 \description{
 This class represent a standard single-end experiment.
-In addition to the \link[=.TargetedExperimet]{TargetedExperimet}
+In addition to the \link[=.Experiment]{Experiment}
 class it provides a vector of file paths and a list of
 output paths. They can both be used in the context
 of other methods such as \code{\link[=by_sample]{by_sample()}}, for

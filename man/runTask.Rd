@@ -2,25 +2,31 @@
 % Please edit documentation in R/methods.R
 \name{runTask}
 \alias{runTask}
-\title{Run a task}
+\title{Run a Task on the experiment}
 \usage{
-runTask(obj, out.exp = function(obj) {     obj }, force = F,
-  quiet = T)
+runTask(obj, task, ..., check.out = F, quiet = T)
 }
 \arguments{
-\item{obj}{the task}
+\item{obj}{a \link{Task} object}
 
-\item{out.exp}{function. This function will be called at the
-end of the task to transform the experiment}
+\item{task}{a function. The first argument of
+this function will be the \link{Experiment}
+object contained in the \link{Task}}
 
-\item{force}{if \code{TRUE} output will be overridden
-even if it exists.}
+\item{...}{additianl arguments to be passed
+to the funciton call}
 
-\item{quiet}{if \code{FALSE} no messages will be displayed}
+\item{check.out}{if \code{TRUE} the \link{Task} won't be
+executedon existing output file/s}
+
+\item{quiet}{if \code{TRUE} no message will be
+displayed}
 }
 \value{
-a task object with after running the task
+a \link{Task} object
 }
 \description{
-Run a task
+a Task (namely a function) will be
+called using the experiment as first
+input.
 }
