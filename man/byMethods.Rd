@@ -40,9 +40,9 @@ factor used to split the experiment. \code{byAll} returns
 a single object.
 }
 \description{
-If threads > 1 and the \link{doMC} package
-has been installed, multiple processes will
-be executed at the same time.
+The Experiment is used as environment
+for evaluating the function call and
+won't be used as input to the function.
 
 \code{bySample} the function is called splitting
 the experiment into sample/s.
@@ -58,4 +58,9 @@ as input/output.
 
 \code{byFile} the function is called on each
 file separately.
+}
+\details{
+If threads > 1 and the \link{doMC} package
+has been installed, multiple processes will
+be executed at the same time.
 }

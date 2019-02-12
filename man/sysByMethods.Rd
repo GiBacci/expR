@@ -37,7 +37,7 @@ sysByFile(obj, cmd, ..., stdout = "", stderr = "", thread = 1)
 to this factor}
 }
 \value{
-a list of bject returned by the function
+a list of objects returned by the function
 }
 \description{
 If threads > 1 and the \link{doMC} package

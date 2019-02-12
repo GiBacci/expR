@@ -172,6 +172,28 @@
   }
 }
 
+#' Transform a paired-end object into two single-end
+#' objects
+#'
+#' This method transforms a paired-end object into
+#' two single-end objects, one for forward file/s
+#' and the other for reverse file/s
+#'
+#' @param obj PairedSamples, the experiment to be
+#'  transformed
+#'
+#' @return list, a list containing two SingleEndSamples
+#' @export
+#'
+#' @examples
+setGeneric("toSingleEnd", function(obj) standardGeneric("toSingleEnd"))
+setMethod("toSingleEnd", "PairedSamples", function(obj){
+  experiment <- .getExperiment(samples = obj@samples, step = obj@step, run = obj@run)
+  forward <- .SingleEndSamples(experiment, files = obj@forward, output = obj@forward.out)
+  reverse <- .SingleEndSamples(experiment, files = obj@reverse, output = obj@reverse.out)
+  return(list(forward = forward, reverse = reverse))
+})
+
 #' Construct an Experiment from file names
 #'
 #' This methods constructs an [Experiment] object
@@ -524,6 +546,10 @@ setMethod("up2date", "PairedSamples", function(obj){
 #' Set of methods to apply a function
 #' over an Experiment object
 #'
+#' The Experiment is used as environment
+#' for evaluating the function call and
+#' won't be used as input to the function.
+#'
 #' If threads > 1 and the [doMC] package
 #' has been installed, multiple processes will
 #' be executed at the same time.
@@ -557,8 +583,10 @@ NULL
     fct <- as.factor(fct)
   }
 
-  data <- as.data.frame(obj)
-  list <- split(data, fct)
+  # data <- as.data.frame(obj)
+  # list <- split(data, fct)
+
+  list <- split(obj, fct)
 
   if(thread > 1 & requireNamespace("foreach", quietly = TRUE) &
      requireNamespace("doParallel", quietly = TRUE) &
@@ -570,9 +598,9 @@ NULL
     doMC::registerDoMC(thread)
     on.exit(doMC::registerDoMC(old))
 
-    foreach::foreach(i = seq_along(list)) %dopar% {
-      d <- list[[i]]
-      eval(f, envir = d, enclos = .GlobalEnv)
+    foreach::foreach(i = list) %dopar% {
+      d <- as.list(i)
+      eval(f, envir = d, enclos = parent.frame())
     }
   } else {
 
@@ -581,8 +609,9 @@ NULL
               absence of one (or more) packages needed")
     }
 
-    lapply(list, function(d) {
-      eval(f, envir = d, enclos = .GlobalEnv)
+    lapply(list, function(i) {
+      d <- as.list(i)
+      eval(f, envir = d, enclos = parent.frame())
     })
 
   }
@@ -680,7 +709,7 @@ setMethod("byFile", "Experiment", function(obj, fun, ..., thread = 1){
 #' @param stderr passed to stderr of [system2]
 #' @param thread integer, the number of parallel process to execute
 #'
-#' @return a list of bject returned by the function
+#' @return a list of objects returned by the function
 #'
 #' @name sysByMethods
 NULL
@@ -776,6 +805,91 @@ setMethod("sysByFile", "Experiment", function(obj, cmd, ..., stdout = "",
 
   .evalFunBy(obj, by, f, thread)
 })
+
+#' Split an Experiment into chunks
+#'
+#' @param obj Experiment, the experiment to split
+#'
+#' @return a list of experiments splitted
+#'  according to the method used
+#'
+#' @name splitBy
+NULL
+
+
+#' Split an Experiment into one chunk per
+#' input file
+#'
+#' \code{splitByFile} splits an Experiment into
+#' one chunk for each input file
+#'
+#' @export
+#'
+#' @rdname splitBy
+setGeneric("splitByFile", function(obj) standardGeneric("splitByFile"))
+setMethod("splitByFile", "Experiment", function(obj){
+  f <- paste0("file_", 1:N(obj))
+  f <- factor(f, levels = f)
+  split(obj, f)
+})
+
+#' Split an Experiment into one chunk per
+#' sample
+#'
+#' \code{splitBySample} splits an Experiment into
+#' one chunk for each sample
+#'
+#' @export
+#'
+#' @rdname splitBy
+setGeneric("splitBySample", function(obj) standardGeneric("splitBySample"))
+setMethod("splitBySample", "Experiment", function(obj){
+  l <- unique(samples(obj))
+  f <- factor(samples(obj), levels = l)
+  split(obj, f)
+})
+
+#' Split an Experiment into one chunk per
+#' run
+#'
+#' \code{splitByRun} splits an Experiment into
+#' one chunk for each run
+#'
+#' @export
+#'
+#' @rdname splitBy
+setGeneric("splitByRun", function(obj) standardGeneric("splitByRun"))
+setMethod("splitByRun", "Experiment", function(obj){
+  l <- unique(run(obj))
+  f <- factor(run(obj), levels = l)
+  split(obj, f)
+})
+
+#' Split an Experiment into one chunk per
+#' run
+#'
+#' \code{splitByOutput} splits an Experiment into
+#' one chunk for each output provided. If the
+#' Experiment is a paired-end experiment, both
+#' forward and reverse output will be merged
+#' and the Experiment will be spitted accordingly
+#'
+#' @export
+#'
+#' @rdname splitBy
+setGeneric("splitByOutput", function(obj) standardGeneric("splitByOutput"))
+setMethod("splitByOutput", "SingleEndSamples", function(obj){
+  l <- unique(output(obj))
+  f <- factor(output(obj), levels = l)
+  split(obj, f)
+})
+
+setMethod("splitByOutput", "PairedSamples", function(obj){
+  f <- apply(output(obj), 1, paste, collapse = "_")
+  f <- factor(f, levels = unique(f))
+  split(obj, f)
+})
+
 
 #' Get an experiment from the output of another one.
 #'
@@ -874,6 +988,7 @@ setMethod("clearOutput", "PairedSamples", function(obj){
   r
 })
 
+
 ## SUBSETTING
 setMethod("[", "Experiment", function(x, i, drop="missing"){
   .samples = x@samples[i]
@@ -944,6 +1059,24 @@ as.data.frame.PairedSamples <- function(x, row.names=NULL, optional=FALSE, ...){
              reverse.out = x@reverse.out, stringsAsFactors = F)
 }
 
+#' Convert an experiment into a list
+#'
+#' @param x [Experiment]
+#' @param ... ignored
+#'
+#' @return a list
+#' @export
+#'
+#' @examples
+as.list.Experiment <- function(x, ...){
+  slots <- slotNames(x)
+  l <- list()
+  for(i in slots){
+    l[[i]] <- slot(x, i)
+  }
+  l
+}
+
 ##### TASK METHODS
 
 #' Run a Task on the experiment
@@ -968,22 +1101,51 @@ as.data.frame.PairedSamples <- function(x, row.names=NULL, optional=FALSE, ...){
 #'
 #' @examples
 setGeneric("runTask", function(obj, task, ..., check.out = F, quiet = T) standardGeneric("runTask"))
-setMethod("runTask", signature = "Task", function(obj, task, ..., check.out = F, quiet = T){
+setMethod("runTask", "Task", function(obj, task, ..., check.out = F, quiet = T){
 
   exp <- obj@exp
   out <- obj@out
   index <- length(out) + 1
 
-  done <- output.exists(exp) & up2date(exp)
+  out[[index]] <- NA
 
-  if(check.out & sum(done) != 0){
+  o <- as.matrix(output(exp))
+  f <- apply(o, 1, paste, collapse = "_")
+
+  l <- unique(f)
+  f <- factor(f, levels = l)
+
+  splitted <- split(exp, f)
+
+  done <- sapply(splitted, function(x){
+    done <- output.exists(x) & up2date(x)
+    return(all(done))
+  })
+  f <- as.character(f)
+  done <- done[f]
+
+  # done <- sapply(splitByOutput(exp), function(x){
+  #   done <- output.exists(x) & up2date(x)
+  #   if(all(done)){
+  #     return(done)
+  #   }
+  #   return(rep(F, length(done)))
+  # })
+  # done <- unlist(done)
+
+  # done <- output.exists(exp) & up2date(exp)
+
+  if(check.out & sum(done) > 0){
     if(!quiet){
       message("Some samples have been already processed:")
       s <- paste(samples(exp)[done], collapse = "\n")
       message(s)
 
-      v <- as.vector(as.matrix(output(exp)[done,]))
+
+      v <- as.vector(as.matrix(output(exp))[done,])
+      v <- unique(v)
       v <- paste(v[file.exists(v)], collapse = "\n")
+
       message("Remove the following files if you want to repeat the task:")
       message(v)
     }
@@ -992,12 +1154,20 @@ setMethod("runTask", signature = "Task", function(obj, task, ..., check.out = F,
     e <- exp
   }
 
-  s <- substitute(task(e, ...))
-  out[[index]] <- eval(s, enclos = .GlobalEnv)
+  if(N(e) > 0){
+    s <- substitute(task(e, ...))
+    out[[index]] <- eval(s, enclos = .GlobalEnv)
+  }
 
   obj@out <- out
   return(obj)
 })
+
+setMethod("runTask", "Experiment", function(obj, task, ..., check.out = F, quiet = T){
+  obj <- newTask(obj)
+  runTask(obj, task, ..., check.out = check.out, quiet = quiet)
+})
+
 
 
 #' Change the experimen withing a [Task] object
@@ -1056,12 +1226,14 @@ setMethod("getExp", "Task", function(obj){
   obj@exp
 })
 
-#' Gte the output from a [Task] object
+#' Get the output from a [Task] object
 #'
 #' \code{getOut} returns the output
 #'  from a [Task] object
 #'
 #' @param obj
+#' @param index integer, the index of the output to get.
+#'  If \code{NULL} the entire list is retrived.
 #'
 #' @return the output from a [Task] object
 #'
@@ -1069,7 +1241,11 @@ setMethod("getExp", "Task", function(obj){
 #'
 #' @rdname task.accessors
 #' @examples
-setGeneric("getOut", function(obj) standardGeneric("getOut"))
-setMethod("getOut", "Task", function(obj){
-  obj@out
+setGeneric("getOut", function(obj, index = NULL) standardGeneric("getOut"))
+setMethod("getOut", "Task", function(obj, index = NULL){
+  if(is.null(index)){
+    obj@out
+  }else{
+    obj@out[[index]]
+  }
 })

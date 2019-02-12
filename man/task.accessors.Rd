@@ -9,14 +9,15 @@ slots of a \link{TaskOutput} object}
 \usage{
 getExp(obj)
 
-getOut(obj)
+getOut(obj, index = NULL)
 }
 \arguments{
 \item{obj}{a TaskOutput object}
 
-\item{obj}{a \link{Task} object.}
+\item{index}{integer, the index of the output to get.
+If \code{NULL} the entire list is retrived.}
 
-\item{obj}{}
+\item{obj}{a \link{Task} object.}
 }
 \value{
 the Experiment
