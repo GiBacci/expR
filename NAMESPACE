@@ -3,6 +3,7 @@
 S3method(as.data.frame,Experiment)
 S3method(as.data.frame,PairedSamples)
 S3method(as.data.frame,SingleEndSamples)
+S3method(as.list,Experiment)
 export("step<-")
 export(N)
 export(byAll)

@@ -17,4 +17,5 @@ Suggests:
     foreach,
     doParallel,
     parallel,
-    iterators
+    iterators,
+    doMC
